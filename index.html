@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Shift UI</title>
+    <title>Shift OS - Pro</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <style>
@@ -58,7 +58,7 @@
 
         /* --- Layout Containers --- */
         #app {
-            display: flex; /* Critical for Desktop Side-by-Side */
+            display: flex; 
             width: 100%;
             height: 100%;
         }
@@ -136,6 +136,7 @@
         .col-1 { grid-column: span 1; }
         .col-2 { grid-column: span 2; }
         .col-3 { grid-column: span 3; }
+        .col-4 { grid-column: span 4; }
         .row-2 { grid-row: span 2; }
 
         /* Clock Widget */
@@ -154,7 +155,7 @@
 
         /* Employee List (Horizontal) */
         .emp-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
-        .emp-chip { min-width: 140px; padding: 10px; background: var(--card-bg); border-radius: 50px; display: flex; align-items: center; gap: 10px; cursor: pointer; box-shadow: var(--shadow-sm); border: 2px solid transparent; transition: 0.2s; }
+        .emp-chip { min-width: 140px; padding: 10px; background: var(--card-bg); border-radius: 50px; display: flex; align-items: center; gap: 10px; cursor: pointer; box-shadow: var(--shadow-sm); border: 2px solid transparent; transition: 0.2s; position: relative; }
         .emp-chip:hover { transform: translateY(-2px); }
         .emp-chip.selected { border-color: var(--accent-blue); background: var(--bg-body); }
         .emp-av-small { width: 30px; height: 30px; border-radius: 50%; background: #ddd; }
@@ -204,6 +205,32 @@
         .toggle-btn { padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-secondary); transition: 0.2s; border: none; background: transparent; }
         .toggle-btn.active { background: var(--card-bg); color: var(--text-primary); box-shadow: var(--shadow-sm); }
 
+        /* Context Menu */
+        #context-menu {
+            position: fixed;
+            background: var(--card-bg);
+            border: 1px solid rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border-radius: 12px;
+            padding: 6px;
+            z-index: 1000;
+            width: 160px;
+            animation: fadeIn 0.1s ease;
+        }
+        .ctx-item {
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-red);
+            transition: 0.1s;
+        }
+        .ctx-item:hover { background: rgba(255, 59, 48, 0.1); }
+
         /* --- MOBILE NAV --- */
         .mobile-nav {
             display: none;
@@ -229,9 +256,9 @@
         @media (max-width: 768px) {
             :root { --nav-height: 70px; }
             
-            #app { display: block; } /* Changes from flex row to block for stacking */
-            aside { display: none; } /* Hide Sidebar */
-            .mobile-nav { display: flex; } /* Show Bottom Nav */
+            #app { display: block; } 
+            aside { display: none; } 
+            .mobile-nav { display: flex; } 
             
             main { 
                 padding: 20px 16px; 
@@ -240,33 +267,33 @@
                 height: 100%;
             }
 
-            /* Typography & Sizing */
             h1 { font-size: 28px; }
             .card { padding: 20px; border-radius: 20px; }
 
-            /* Bento Grid -> Single Column Feed */
             .bento { grid-template-columns: 1fr; gap: 16px; grid-auto-rows: auto; }
-            .col-1, .col-2, .col-3, .row-2 { grid-column: auto; grid-row: auto; }
+            .col-1, .col-2, .col-3, .col-4, .row-2 { grid-column: auto; grid-row: auto; }
 
-            /* Project Card Stacking */
             .project-card-grid { grid-template-columns: 1fr; gap: 20px; }
             .proj-notes-box { margin-top: 15px; padding: 15px; }
 
-            /* Tables */
             .staff-table { display: block; overflow-x: auto; white-space: nowrap; }
 
-            /* Widgets */
             .clock-widget { padding: 30px 0; }
             .clock-dial { width: 100px; height: 100px; }
             .clock-dial i { font-size: 28px; }
 
-            /* Misc */
             .emp-chip { min-width: 120px; padding: 8px; }
             .emp-av-small { width: 24px; height: 24px; }
         }
     </style>
 </head>
 <body>
+
+    <div id="context-menu" class="hidden">
+        <div class="ctx-item" onclick="executeRemoveEmployee()">
+            <i class="fa-solid fa-trash-can"></i> Remove Employee
+        </div>
+    </div>
 
     <div id="modal-avail" class="modal-overlay hidden">
         <div class="modal-card">
@@ -358,7 +385,7 @@
     <div id="auth-overlay">
         <div id="login-card" class="login-box fade-in">
             <div style="font-size: 48px; color: var(--accent-blue); margin-bottom: 16px;">
-                <i class="fa-brands"></i>
+                <i class="fa-brands fa-apple"></i>
             </div>
             <h1>Shift UI</h1>
             <p class="subtext">Workforce management, simplified.</p>
@@ -386,7 +413,7 @@
         
         <aside>
             <div class="nav-header">
-                <i class="fa-brands" style="font-size: 24px;"></i> Shift UI
+                <i class="fa-brands fa-apple" style="font-size: 24px;"></i> Shift UI
             </div>
 
             <div id="nav-employee" class="hidden">
@@ -400,6 +427,7 @@
             <div id="nav-employer" class="hidden">
                 <div class="nav-item active" onclick="switchView('dash-employer', this)" data-view="dash-employer"><i class="fa-solid fa-chart-pie"></i> Team Overview</div>
                 <div class="nav-item" onclick="switchView('view-staff-directory', this)" data-view="view-staff-directory"><i class="fa-solid fa-users"></i> Staff Directory</div>
+                <div class="nav-item" onclick="switchView('view-employee-stats', this)" data-view="view-employee-stats"><i class="fa-solid fa-chart-simple"></i> Analytics</div>
                 <div class="nav-item" onclick="switchView('view-all-requests', this)" data-view="view-all-requests"><i class="fa-solid fa-inbox"></i> Requests</div>
                 <div class="nav-item" onclick="switchView('view-projects-employer', this)" data-view="view-projects-employer"><i class="fa-solid fa-folder-open"></i> Projects</div>
                 <div class="nav-item" onclick="switchView('view-settings', this)" data-view="view-settings"><i class="fa-solid fa-gear"></i> Settings</div>
@@ -425,9 +453,9 @@
 
         <nav class="mobile-nav hidden" id="mob-nav-employer">
             <div class="mob-nav-item active" onclick="switchView('dash-employer', this)" data-view="dash-employer"><i class="fa-solid fa-chart-pie"></i> Team</div>
-            <div class="mob-nav-item" onclick="switchView('view-staff-directory', this)" data-view="view-staff-directory"><i class="fa-solid fa-users"></i> Staff</div>
-            <div class="mob-nav-item" onclick="switchView('view-all-requests', this)" data-view="view-all-requests"><i class="fa-solid fa-inbox"></i> Reqs</div>
+            <div class="mob-nav-item" onclick="switchView('view-employee-stats', this)" data-view="view-employee-stats"><i class="fa-solid fa-chart-simple"></i> Stats</div>
             <div class="mob-nav-item" onclick="switchView('view-projects-employer', this)" data-view="view-projects-employer"><i class="fa-solid fa-folder-open"></i> Proj</div>
+            <div class="mob-nav-item" onclick="switchView('view-staff-directory', this)" data-view="view-staff-directory"><i class="fa-solid fa-users"></i> Staff</div>
             <div class="mob-nav-item" onclick="switchView('view-settings', this)" data-view="view-settings"><i class="fa-solid fa-gear"></i> Set</div>
         </nav>
 
@@ -602,6 +630,37 @@
                 </div>
             </div>
 
+            <div id="view-employee-stats" class="view-section hidden fade-in">
+                <h1>Employee Analytics</h1>
+                <p class="subtext">Detailed performance statistics.</p>
+
+                <div class="card" style="margin-bottom: 20px; max-width: 500px;">
+                    <label style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:5px; display:block;">SELECT EMPLOYEE</label>
+                    <select id="stats-emp-select" onchange="window.loadStatsForEmp(this.value)" style="width:100%;">
+                        <option value="">Select an employee...</option>
+                    </select>
+                </div>
+
+                <div id="stats-display" class="hidden">
+                    <div class="bento">
+                        <div class="card col-2">
+                            <div style="font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Total Hours Worked</div>
+                            <div style="font-size:42px; font-weight:700; margin-top:10px;" id="stat-total-hours">0.0</div>
+                        </div>
+                        <div class="card col-2">
+                            <div style="font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Total Contributions</div>
+                            <div style="font-size:42px; font-weight:700; margin-top:10px;" id="stat-total-shifts">0</div>
+                            <div class="subtext" style="font-size:12px;">Shifts logged</div>
+                        </div>
+                        <div class="card col-4"> 
+                            <div style="font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Projects Completed</div>
+                            <div style="font-size:42px; font-weight:700; color:var(--accent-green); margin-top:10px;" id="stat-completed-projs">0</div>
+                            <div class="subtext" style="margin-bottom:0;">Projects where progress reached 100%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="view-all-requests" class="view-section hidden fade-in">
                 <h1>All Requests</h1>
                 <p class="subtext">History of all time-off requests.</p>
@@ -655,7 +714,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, getDocs, updateDoc, onSnapshot, serverTimestamp, limit, arrayUnion, deleteField } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, getDocs, updateDoc, onSnapshot, serverTimestamp, limit, arrayUnion, arrayRemove, deleteField } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
         // CONFIGURATION (PASTE YOUR KEYS HERE)
         const firebaseConfig = {
@@ -683,6 +742,7 @@
         const metricLabels = ["TODAY", "THIS WEEK", "ALL TIME"];
         let selectedDateForModal = null;
         let mgrCalViewMode = 'list';
+        let contextMenuTargetId = null;
 
         // --- AUTH & SETUP ---
         window.signIn = () => signInWithPopup(auth, provider);
@@ -752,7 +812,6 @@
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
             document.getElementById(viewId).classList.remove('hidden');
             
-            // Highlight active in both desktop and mobile nav
             document.querySelectorAll('.nav-item, .mob-nav-item').forEach(el => el.classList.remove('active'));
             const matchingNavs = document.querySelectorAll(`[data-view="${viewId}"]`);
             matchingNavs.forEach(el => el.classList.add('active'));
@@ -763,11 +822,52 @@
             if(viewId === 'view-all-requests') loadAllRequestsPage();
             if(viewId === 'view-projects-employer') loadEmployerProjects();
             if(viewId === 'view-projects-employee') loadEmployeeProjects();
+            if(viewId === 'view-employee-stats') loadEmployeeStatsSelector();
+        };
+
+        // --- CONTEXT MENU LOGIC ---
+        window.showContextMenu = (e, uid) => {
+            e.preventDefault();
+            contextMenuTargetId = uid;
+            const menu = document.getElementById('context-menu');
+            
+            let x = e.clientX;
+            let y = e.clientY;
+            
+            if (x + 160 > window.innerWidth) x = window.innerWidth - 170;
+            
+            menu.style.left = `${x}px`;
+            menu.style.top = `${y}px`;
+            menu.classList.remove('hidden');
+        };
+
+        window.hideContextMenu = () => {
+            document.getElementById('context-menu').classList.add('hidden');
+        };
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#context-menu')) {
+                hideContextMenu();
+            }
+        });
+
+        window.executeRemoveEmployee = async () => {
+            if(!contextMenuTargetId) return;
+            if(!confirm("Are you sure you want to remove this employee from your team?")) return;
+
+            await updateDoc(doc(db, "users", currentUser.uid), {
+                managedEmployees: arrayRemove(contextMenuTargetId)
+            });
+
+            hideContextMenu();
+            alert("Employee removed.");
+            
+            if(!document.getElementById('dash-employer').classList.contains('hidden')) loadMyTeam();
+            if(!document.getElementById('view-staff-directory').classList.contains('hidden')) loadStaffDirectory();
         };
 
         // --- EMPLOYEE VIEW ---
         function initEmployeeView() {
-            // Unhide first to avoid blank screen
             document.getElementById('nav-employee').classList.remove('hidden');
             document.getElementById('mob-nav-employee').classList.remove('hidden');
             document.getElementById('dash-employee').classList.remove('hidden');
@@ -1022,6 +1122,53 @@
             alert("Progress Saved!");
         };
 
+        // --- NEW EMPLOYEE STATS VIEW LOGIC ---
+        async function loadEmployeeStatsSelector() {
+            const select = document.getElementById('stats-emp-select');
+            select.innerHTML = '<option value="">Select an employee...</option>';
+            
+            const userRef = doc(db, "users", currentUser.uid);
+            const userSnap = await getDoc(userRef);
+            const teamIds = userSnap.data().managedEmployees || [];
+            
+            for(const uid of teamIds) {
+                const empSnap = await getDoc(doc(db, "users", uid));
+                if(empSnap.exists()) {
+                    const e = empSnap.data();
+                    const opt = document.createElement('option');
+                    opt.value = uid;
+                    opt.innerText = e.name;
+                    select.appendChild(opt);
+                }
+            }
+        }
+
+        window.loadStatsForEmp = async (uid) => {
+            if(!uid) { 
+                document.getElementById('stats-display').classList.add('hidden'); 
+                return; 
+            }
+            document.getElementById('stats-display').classList.remove('hidden');
+
+            // 1. Shifts (Hours & Count)
+            const qShifts = query(collection(db, "shifts"), where("userId", "==", uid), where("endTime", "!=", null));
+            const shiftSnaps = await getDocs(qShifts);
+            let ms = 0;
+            let count = 0;
+            shiftSnaps.forEach(doc => {
+                const d = doc.data();
+                ms += (d.endTime.toDate() - d.startTime.toDate());
+                count++;
+            });
+            document.getElementById('stat-total-hours').innerText = (ms / 36e5).toFixed(1);
+            document.getElementById('stat-total-shifts').innerText = count;
+
+            // 2. Projects Completed (Assigned to user + progress == 100)
+            const qProjs = query(collection(db, "projects"), where("assignedTo", "array-contains", uid), where("progress", "==", 100));
+            const projSnaps = await getDocs(qProjs);
+            document.getElementById('stat-completed-projs').innerText = projSnaps.size;
+        };
+
         // --- SHARED CALENDAR/REQUEST/MEET ---
         function renderCalendar(id, interactive) {
             const el = document.getElementById(id); el.innerHTML = '';
@@ -1145,6 +1292,10 @@
                     const emp = empSnap.data();
                     const d = document.createElement('div'); d.className = 'emp-chip'; d.id = `chip-${uid}`;
                     d.onclick = () => selectEmp(empSnap.id, emp, d);
+                    
+                    // Add right-click listener
+                    d.oncontextmenu = (e) => showContextMenu(e, uid);
+
                     d.innerHTML = `<img src="${emp.photo}" class="emp-av-small"><div style="font-size:13px; font-weight:500;">${emp.name}</div>`;
                     list.appendChild(d);
                     if(uid === lastSelected) selectEmp(uid, emp, d);
@@ -1213,7 +1364,13 @@
                 if(empSnap.exists()) {
                     const e = empSnap.data();
                     const status = e.isReachable ? '<span style="color:var(--accent-green)">Reachable</span>' : '<span style="color:var(--accent-red)">Unreachable</span>';
-                    tbody.innerHTML += `<tr><td><div style="display:flex; align-items:center; gap:10px;"><img src="${e.photo}" style="width:30px; height:30px; border-radius:50%;"><span style="font-weight:500;">${e.name}</span></div></td><td style="font-family:monospace; color:var(--text-secondary);">${e.employeeCode}</td><td>${status}</td><td style="color:var(--text-secondary);">${e.email}</td></tr>`;
+                    
+                    const tr = document.createElement('tr');
+                    // Add right-click listener
+                    tr.oncontextmenu = (ev) => showContextMenu(ev, uid);
+                    
+                    tr.innerHTML = `<td><div style="display:flex; align-items:center; gap:10px;"><img src="${e.photo}" style="width:30px; height:30px; border-radius:50%;"><span style="font-weight:500;">${e.name}</span></div></td><td style="font-family:monospace; color:var(--text-secondary);">${e.employeeCode}</td><td>${status}</td><td style="color:var(--text-secondary);">${e.email}</td>`;
+                    tbody.appendChild(tr);
                 }
             }
         }
