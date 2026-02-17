@@ -743,6 +743,10 @@
         let selectedDateForModal = null;
         let mgrCalViewMode = 'list';
         let contextMenuTargetId = null;
+        
+        // Stats Listeners
+        let statsUnsubShifts = null;
+        let statsUnsubProjs = null;
 
         // --- AUTH & SETUP ---
         window.signIn = () => signInWithPopup(auth, provider);
@@ -1122,51 +1126,61 @@
             alert("Progress Saved!");
         };
 
-        // --- NEW EMPLOYEE STATS VIEW LOGIC ---
+        // --- NEW EMPLOYEE STATS VIEW LOGIC (REAL-TIME FIX) ---
         async function loadEmployeeStatsSelector() {
             const select = document.getElementById('stats-emp-select');
-            select.innerHTML = '<option value="">Select an employee...</option>';
-            
-            const userRef = doc(db, "users", currentUser.uid);
-            const userSnap = await getDoc(userRef);
-            const teamIds = userSnap.data().managedEmployees || [];
-            
-            for(const uid of teamIds) {
-                const empSnap = await getDoc(doc(db, "users", uid));
-                if(empSnap.exists()) {
-                    const e = empSnap.data();
-                    const opt = document.createElement('option');
-                    opt.value = uid;
-                    opt.innerText = e.name;
-                    select.appendChild(opt);
+            // Keep existing options if already populated to avoid flickering
+            if(select.options.length <= 1){
+                select.innerHTML = '<option value="">Select an employee...</option>';
+                const userRef = doc(db, "users", currentUser.uid);
+                const userSnap = await getDoc(userRef);
+                const teamIds = userSnap.data().managedEmployees || [];
+                
+                for(const uid of teamIds) {
+                    const empSnap = await getDoc(doc(db, "users", uid));
+                    if(empSnap.exists()) {
+                        const e = empSnap.data();
+                        const opt = document.createElement('option');
+                        opt.value = uid;
+                        opt.innerText = e.name;
+                        select.appendChild(opt);
+                    }
                 }
             }
         }
 
-        window.loadStatsForEmp = async (uid) => {
+        window.loadStatsForEmp = (uid) => {
+            // Unsubscribe previous listeners if any
+            if(statsUnsubShifts) statsUnsubShifts();
+            if(statsUnsubProjs) statsUnsubProjs();
+
             if(!uid) { 
                 document.getElementById('stats-display').classList.add('hidden'); 
                 return; 
             }
             document.getElementById('stats-display').classList.remove('hidden');
 
-            // 1. Shifts (Hours & Count)
+            // 1. Shifts Listener (Real-time)
             const qShifts = query(collection(db, "shifts"), where("userId", "==", uid), where("endTime", "!=", null));
-            const shiftSnaps = await getDocs(qShifts);
-            let ms = 0;
-            let count = 0;
-            shiftSnaps.forEach(doc => {
-                const d = doc.data();
-                ms += (d.endTime.toDate() - d.startTime.toDate());
-                count++;
+            statsUnsubShifts = onSnapshot(qShifts, (shiftSnaps) => {
+                let ms = 0;
+                let count = 0;
+                shiftSnaps.forEach(doc => {
+                    const d = doc.data();
+                    if(d.startTime && d.endTime) {
+                        ms += (d.endTime.toDate() - d.startTime.toDate());
+                        count++;
+                    }
+                });
+                document.getElementById('stat-total-hours').innerText = (ms / 36e5).toFixed(1);
+                document.getElementById('stat-total-shifts').innerText = count;
             });
-            document.getElementById('stat-total-hours').innerText = (ms / 36e5).toFixed(1);
-            document.getElementById('stat-total-shifts').innerText = count;
 
-            // 2. Projects Completed (Assigned to user + progress == 100)
+            // 2. Projects Listener (Real-time)
             const qProjs = query(collection(db, "projects"), where("assignedTo", "array-contains", uid), where("progress", "==", 100));
-            const projSnaps = await getDocs(qProjs);
-            document.getElementById('stat-completed-projs').innerText = projSnaps.size;
+            statsUnsubProjs = onSnapshot(qProjs, (projSnaps) => {
+                document.getElementById('stat-completed-projs').innerText = projSnaps.size;
+            });
         };
 
         // --- SHARED CALENDAR/REQUEST/MEET ---
