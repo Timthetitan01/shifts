@@ -837,9 +837,10 @@
                  setupEmployerListeners();
             }
 
-            // Restore last view
+            // RESTORE LAST TAB
             let lastView = localStorage.getItem('lastView');
             if(!lastView || !document.getElementById(lastView)) {
+                // Default if no history
                 lastView = role === 'employee' ? 'dash-employee' : 'dash-employer';
             }
             // If it was analytics, we need to ensure the dropdown populates before selecting
@@ -857,7 +858,6 @@
             document.getElementById(viewId).classList.remove('hidden');
             
             document.querySelectorAll('.nav-item, .mob-nav-item').forEach(el => el.classList.remove('active'));
-            // Find both desktop and mobile buttons for this view and highlight them
             const matchingNavs = document.querySelectorAll(`[data-view="${viewId}"]`);
             matchingNavs.forEach(el => el.classList.add('active'));
 
@@ -1292,11 +1292,32 @@
 
         // --- SHARED CALENDAR/REQUEST/MEET ---
         function renderCalendar(id, interactive) {
-            const el = document.getElementById(id); el.innerHTML = '';
-            ['S','M','T','W','T','F','S'].forEach(d => el.innerHTML += `<div style="text-align:center; font-size:10px; color:#aaa;">${d}</div>`);
+            const el = document.getElementById(id); 
+            if(!el) return;
+            el.innerHTML = '';
+            
+            const headers = ['S','M','T','W','T','F','S'];
+            headers.forEach(h => {
+                const d = document.createElement('div');
+                d.style.textAlign = 'center';
+                d.style.fontSize = '10px';
+                d.style.color = '#aaa';
+                d.innerText = h;
+                el.appendChild(d);
+            });
+
             for(let i=1; i<=30; i++) {
-                const day = document.createElement('div'); day.className = 'cal-day'; day.innerText = i; day.id = interactive ? `emp-d-${i}` : `mgr-d-${i}`;
-                if(interactive) day.onclick = () => { selectedDateForModal = i; document.getElementById('avail-date-display').innerText = `Set hours for Day ${i}`; openModal('modal-avail'); }
+                const day = document.createElement('div'); 
+                day.className = 'cal-day'; 
+                day.innerText = i; 
+                day.id = interactive ? `emp-d-${i}` : `mgr-d-${i}`;
+                if(interactive) {
+                    day.onclick = () => { 
+                        selectedDateForModal = i; 
+                        document.getElementById('avail-date-display').innerText = `Set hours for Day ${i}`; 
+                        openModal('modal-avail'); 
+                    }
+                }
                 el.appendChild(day);
             }
         }
