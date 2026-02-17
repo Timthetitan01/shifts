@@ -645,16 +645,16 @@
                     <div class="bento">
                         <div class="card col-2">
                             <div style="font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Total Hours Worked</div>
-                            <div style="font-size:42px; font-weight:700; margin-top:10px;" id="stat-total-hours">0.0</div>
+                            <div style="font-size:42px; font-weight:700; margin-top:10px;" id="stat-total-hours">-</div>
                         </div>
                         <div class="card col-2">
                             <div style="font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Total Contributions</div>
-                            <div style="font-size:42px; font-weight:700; margin-top:10px;" id="stat-total-shifts">0</div>
+                            <div style="font-size:42px; font-weight:700; margin-top:10px;" id="stat-total-shifts">-</div>
                             <div class="subtext" style="font-size:12px;">Shifts logged</div>
                         </div>
                         <div class="card col-4"> 
                             <div style="font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Projects Completed</div>
-                            <div style="font-size:42px; font-weight:700; color:var(--accent-green); margin-top:10px;" id="stat-completed-projs">0</div>
+                            <div style="font-size:42px; font-weight:700; color:var(--accent-green); margin-top:10px;" id="stat-completed-projs">-</div>
                             <div class="subtext" style="margin-bottom:0;">Projects where progress reached 100%</div>
                         </div>
                     </div>
@@ -1159,6 +1159,11 @@
                 return; 
             }
             document.getElementById('stats-display').classList.remove('hidden');
+            
+            // Set Loading State
+            document.getElementById('stat-total-hours').innerText = "-";
+            document.getElementById('stat-total-shifts').innerText = "-";
+            document.getElementById('stat-completed-projs').innerText = "-";
 
             // 1. Shifts Listener (Query ALL shifts for user, filter in JS to avoid Index issues)
             const qShifts = query(collection(db, "shifts"), where("userId", "==", uid));
@@ -1182,13 +1187,15 @@
             });
 
             // 2. Projects Listener
-            // Safer bet: Query all projects assigned to user, filter 'progress == 100' in JS.
+            // Query all projects assigned to user, filter 'progress == 100' in JS.
             const qProjs = query(collection(db, "projects"), where("assignedTo", "array-contains", uid));
             
             statsUnsubProjs = onSnapshot(qProjs, (projSnaps) => {
                 let completedCount = 0;
                 projSnaps.forEach(doc => {
-                    if(doc.data().progress == 100) completedCount++;
+                    const p = doc.data();
+                    // Robust check: ensure it is number 100 or string "100"
+                    if(parseInt(p.progress || 0) === 100) completedCount++;
                 });
                 document.getElementById('stat-completed-projs').innerText = completedCount;
             });
@@ -1317,6 +1324,10 @@
                     const emp = empSnap.data();
                     const d = document.createElement('div'); d.className = 'emp-chip'; d.id = `chip-${uid}`;
                     d.onclick = () => selectEmp(empSnap.id, emp, d);
+                    
+                    // Add right-click listener
+                    d.oncontextmenu = (e) => showContextMenu(e, uid);
+
                     d.innerHTML = `<img src="${emp.photo}" class="emp-av-small"><div style="font-size:13px; font-weight:500;">${emp.name}</div>`;
                     list.appendChild(d);
                     if(uid === lastSelected) selectEmp(uid, emp, d);
