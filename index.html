@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Shift OS - Mobile Optimized</title>
+    <title>Shift OS - Pro</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <style>
@@ -30,19 +30,17 @@
             --shadow-lg: 0 20px 40px rgba(0,0,0,0.1);
             
             --transition: cubic-bezier(0.2, 0.8, 0.2, 1);
-            --nav-height: 0px; /* Default for desktop */
+            --nav-height: 0px;
         }
 
-        /* Dark Mode Variables */
+        /* Dark Mode */
         body.dark-mode {
             --bg-body: #000000;
             --card-bg: #1C1C1E;
             --sidebar-bg: rgba(28, 28, 30, 0.85);
-            
             --text-primary: #FFFFFF;
             --text-secondary: #8E8E93;
             --text-tertiary: #48484A;
-            
             --shadow-sm: 0 2px 8px rgba(0,0,0,0.2);
             --shadow-lg: 0 20px 40px rgba(0,0,0,0.4);
         }
@@ -53,9 +51,37 @@
             background-color: var(--bg-body);
             color: var(--text-primary);
             height: 100vh;
-            display: flex;
+            width: 100vw;
             overflow: hidden;
             transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* --- Layout Containers (The Fix for Blank Screen) --- */
+        #app {
+            display: flex; /* Critical for Desktop Side-by-Side */
+            width: 100%;
+            height: 100%;
+        }
+
+        aside {
+            width: 260px; 
+            height: 100%; 
+            padding: 32px 20px;
+            background: var(--sidebar-bg); 
+            backdrop-filter: blur(20px); 
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(120,120,120,0.1); 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0; /* Prevents sidebar from collapsing */
+            transition: background-color 0.3s;
+        }
+
+        main { 
+            flex: 1; 
+            padding: 40px; 
+            overflow-y: auto; 
+            position: relative;
         }
 
         /* --- Animations --- */
@@ -75,7 +101,7 @@
 
         .card { background: var(--card-bg); border-radius: var(--radius-l); box-shadow: var(--shadow-sm); padding: 24px; position: relative; transition: transform 0.3s, background-color 0.3s; }
 
-        /* --- Layout --- */
+        /* --- Auth Overlay --- */
         #auth-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100;
             background: rgba(200, 200, 200, 0.5); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
@@ -83,7 +109,6 @@
             padding: 20px;
         }
         body.dark-mode #auth-overlay { background: rgba(0,0,0,0.5); }
-
         .login-box { background: var(--card-bg); width: 100%; max-width: 380px; padding: 40px; border-radius: 30px; box-shadow: var(--shadow-lg); text-align: center; }
 
         .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
@@ -91,13 +116,7 @@
         .role-option:hover { background: var(--card-bg); border-color: var(--accent-blue); box-shadow: var(--shadow-sm); }
         .role-option i { font-size: 24px; color: var(--text-secondary); margin-bottom: 8px; display: block; }
 
-        /* Sidebar */
-        aside {
-            width: 260px; height: 100%; padding: 32px 20px;
-            background: var(--sidebar-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(120,120,120,0.1); display: flex; flex-direction: column; transition: background-color 0.3s;
-        }
-        
+        /* Navigation */
         .nav-header { font-size: 19px; font-weight: 700; margin-bottom: 32px; padding-left: 12px; display: flex; align-items: center; gap: 10px; }
         .nav-item { padding: 10px 12px; border-radius: 10px; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 4px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: 0.2s; }
         .nav-item:hover { background: rgba(120,120,120,0.1); color: var(--text-primary); }
@@ -107,9 +126,7 @@
         .user-profile { margin-top: auto; padding: 12px; border-radius: 14px; display: flex; align-items: center; gap: 12px; background: var(--card-bg); box-shadow: var(--shadow-sm); }
         .user-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
 
-        /* Main Content */
-        main { flex: 1; padding: 40px; overflow-y: auto; padding-bottom: 40px; }
-        
+        /* Typography */
         h1 { font-size: 34px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
         h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
         .subtext { color: var(--text-secondary); font-size: 15px; margin-bottom: 32px; }
@@ -142,12 +159,12 @@
         .emp-chip.selected { border-color: var(--accent-blue); background: var(--bg-body); }
         .emp-av-small { width: 30px; height: 30px; border-radius: 50%; background: #ddd; }
 
-        /* Form Elements */
+        /* Inputs */
         textarea { width: 100%; border: none; background: var(--bg-body); color: var(--text-primary); border-radius: 12px; padding: 16px; font-size: 15px; resize: none; outline: none; transition: 0.2s; }
         textarea:focus { background: var(--card-bg); box-shadow: 0 0 0 2px var(--accent-blue); }
         input[type="time"], input[type="date"], input[type="text"], select { width: 100%; padding: 12px; border: 1px solid var(--text-tertiary); background: var(--bg-body); color: var(--text-primary); border-radius: 12px; margin-bottom: 10px; font-size:14px; outline:none; }
         
-        /* Reachable Toggle Switch */
+        /* Switch */
         .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--text-tertiary); transition: .4s; border-radius: 34px; }
@@ -155,24 +172,22 @@
         input:checked + .slider { background-color: var(--accent-green); }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        /* Checkbox list for Project Assign */
-        .checkbox-list { max-height: 150px; overflow-y: auto; background: var(--bg-body); padding: 10px; border-radius: 12px; }
-        .checkbox-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px solid rgba(0,0,0,0.05); }
-        .checkbox-item input { width: auto; margin: 0; }
-
-        /* Progress Bar */
-        .progress-container { width: 100%; background-color: var(--bg-body); border-radius: 10px; height: 8px; margin-top: 10px; overflow: hidden; }
-        .progress-bar { height: 100%; background-color: var(--accent-blue); width: 0%; transition: width 0.5s ease; border-radius: 10px; }
+        /* Projects */
+        .project-card-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 30px; align-items: start; }
+        .proj-notes-box { background: var(--bg-body); border-radius: 16px; padding: 20px; margin-top: 20px; min-height: 100px; font-size: 13px; color: var(--text-secondary); border: 1px solid rgba(0,0,0,0.02); }
+        .proj-progress-row { margin-bottom: 15px; }
+        .proj-progress-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text-primary); }
+        .proj-bar-track { width: 100%; height: 6px; background: var(--bg-body); border-radius: 10px; overflow: hidden; }
+        .proj-bar-fill { height: 100%; background: var(--accent-blue); border-radius: 10px; transition: width 0.5s ease; box-shadow: 0 0 10px rgba(0, 113, 227, 0.4); }
         
-        /* Range Slider */
+        /* Slider Input */
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; margin: 10px 0; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: var(--accent-blue); margin-top: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); cursor: pointer; }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: var(--text-tertiary); border-radius: 2px; }
 
-        /* Modal */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); z-index: 200; display: flex; justify-content: center; align-items: center; padding: 20px;}
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); z-index: 200; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .modal-card { background: var(--card-bg); padding: 30px; border-radius: 20px; width: 100%; max-width: 350px; box-shadow: var(--shadow-lg); animation: popIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); max-height: 90vh; overflow-y: auto; }
-        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         
         .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--bg-body); }
         .list-item:last-child { border-bottom: none; }
@@ -184,36 +199,9 @@
 
         .settings-list { margin-top: 20px; }
         .settings-item { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid var(--bg-body); font-size: 15px; }
-        .settings-item:last-child { border-bottom: none; }
-
-        /* Toggle Button Group */
         .toggle-group { background: var(--bg-body); padding: 4px; border-radius: 8px; display: inline-flex; }
         .toggle-btn { padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-secondary); transition: 0.2s; border: none; background: transparent; }
         .toggle-btn.active { background: var(--card-bg); color: var(--text-primary); box-shadow: var(--shadow-sm); }
-
-        /* --- New Project Card Design --- */
-        .project-card-grid {
-            display: grid;
-            grid-template-columns: 1.6fr 1fr; /* Left column wider */
-            gap: 30px;
-            align-items: start;
-        }
-        
-        .proj-notes-box {
-            background: var(--bg-body); /* Creates the contrast box effect */
-            border-radius: 16px;
-            padding: 20px;
-            margin-top: 20px;
-            min-height: 100px;
-            font-size: 13px;
-            color: var(--text-secondary);
-            border: 1px solid rgba(0,0,0,0.02);
-        }
-        
-        .proj-progress-row { margin-bottom: 15px; }
-        .proj-progress-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text-primary); }
-        .proj-bar-track { width: 100%; height: 6px; background: var(--bg-body); border-radius: 10px; overflow: hidden; }
-        .proj-bar-fill { height: 100%; background: var(--accent-blue); border-radius: 10px; transition: width 0.5s ease; box-shadow: 0 0 10px rgba(0, 113, 227, 0.4); }
 
         /* --- MOBILE NAV (New) --- */
         .mobile-nav {
@@ -225,7 +213,7 @@
             padding: 10px 0;
             justify-content: space-around;
             z-index: 90;
-            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* Safe area for iPhone home bar */
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
         }
         .mob-nav-item {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -240,8 +228,7 @@
         @media (max-width: 768px) {
             :root { --nav-height: 70px; }
             
-            /* Layout Structure */
-            body { flex-direction: column; }
+            #app { display: block; } /* Changes from flex row to block for stacking */
             aside { display: none; } /* Hide Sidebar */
             .mobile-nav { display: flex; } /* Show Bottom Nav */
             
@@ -249,6 +236,7 @@
                 padding: 20px 16px; 
                 padding-bottom: calc(var(--nav-height) + 20px); 
                 width: 100%;
+                height: 100%;
             }
 
             /* Typography & Sizing */
@@ -389,7 +377,8 @@
         </div>
     </div>
 
-    <div id="app" class="hidden" style="width: 100%;">
+    <div id="app" class="hidden">
+        
         <aside>
             <div class="nav-header">
                 <i class="fa-brands fa-apple" style="font-size: 24px;"></i> Shift
@@ -682,7 +671,7 @@
         let currentUser = null;
         let clockTimer;
         let activeShiftId = null;
-        let activeShiftProject = null; // Stores projectId of current active shift
+        let activeShiftProject = null;
         let selectedEmployeeId = null;
         let currentRole = null;
         let metricMode = 1; 
@@ -755,16 +744,11 @@
         }
 
         window.switchView = (viewId, btn) => {
-            // Hide all sections
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-            // Show target section
             document.getElementById(viewId).classList.remove('hidden');
             
-            // Remove active class from ALL nav items (desktop + mobile)
+            // Highlight active in both desktop and mobile nav
             document.querySelectorAll('.nav-item, .mob-nav-item').forEach(el => el.classList.remove('active'));
-            
-            // Add active class to elements matching the viewId
-            // This ensures both sidebar and bottom nav highlight correctly
             const matchingNavs = document.querySelectorAll(`[data-view="${viewId}"]`);
             matchingNavs.forEach(el => el.classList.add('active'));
 
@@ -778,9 +762,11 @@
 
         // --- EMPLOYEE VIEW ---
         function initEmployeeView() {
+            // Unhide first to avoid blank screen
             document.getElementById('nav-employee').classList.remove('hidden');
-            document.getElementById('mob-nav-employee').classList.remove('hidden'); // Show mobile nav
+            document.getElementById('mob-nav-employee').classList.remove('hidden');
             document.getElementById('dash-employee').classList.remove('hidden');
+            
             checkActiveShift();
             loadAvailability(currentUser.uid, 'emp-cal', true);
             calculateMetrics();
@@ -861,7 +847,7 @@
         };
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
 
-        // --- PROJECTS LOGIC (NEW) ---
+        // --- PROJECTS LOGIC ---
         window.openCreateProjectModal = async () => {
             const container = document.getElementById('proj-assign-list');
             container.innerHTML = 'Loading...';
@@ -921,34 +907,27 @@
             container.innerHTML = "";
             if(snaps.empty) { container.innerHTML = "<div style='color:#999'>No projects created.</div>"; return; }
             
-            // To display grid cards nicely, we change the container style slightly here
             container.style.display = 'flex';
             container.style.flexDirection = 'column';
             container.style.gap = '20px';
             
             snaps.forEach(doc => {
                 const p = doc.data();
-                
-                // Calculate display info
                 const progress = p.progress || 0;
                 const lastWorker = p.lastWorkedBy ? p.lastWorkedBy.split(' ')[0] : 'None';
                 const lastTask = p.lastTask || 'No activity';
                 
                 container.innerHTML += `
                     <div class="card project-card-grid">
-                        
                         <div>
                             <div style="font-size: 28px; font-weight: 700; margin-bottom: 5px; letter-spacing:-0.5px;">${p.name}</div>
                             <div style="font-size: 15px; color: var(--text-secondary); margin-bottom: 10px;">${p.description}</div>
-                            
                             <div class="proj-notes-box">
                                 <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-tertiary); margin-bottom:10px;">Project Notes</div>
                                 ${p.notes || "No notes added."}
                             </div>
                         </div>
-
                         <div style="padding-top:10px;">
-                            
                             <div class="proj-progress-row">
                                 <div class="proj-progress-label">
                                     <span>Overall Completion</span>
@@ -958,7 +937,6 @@
                                     <div class="proj-bar-fill" style="width: ${progress}%"></div>
                                 </div>
                             </div>
-
                             <div class="proj-progress-row" style="margin-top:25px; opacity:0.8;">
                                 <div class="proj-progress-label">
                                     <span style="font-weight:400; font-size:12px;">Last Update (${lastWorker})</span>
@@ -968,11 +946,9 @@
                                     <div class="proj-bar-fill" style="width: 100%; background:var(--accent-purple); opacity:0.3;"></div>
                                 </div>
                             </div>
-                            
                             <div style="margin-top:30px; font-size:12px; color:var(--text-tertiary); text-align:right;">
                                 ${p.assignedTo.length} Employees Assigned
                             </div>
-
                         </div>
                     </div>
                 `;
@@ -982,8 +958,6 @@
         async function loadEmployeeProjects() {
             const container = document.getElementById('emp-proj-list');
             container.innerHTML = "Loading...";
-            
-            // Change container to column layout for these wide cards
             container.style.display = 'flex';
             container.style.flexDirection = 'column';
             container.style.gap = '20px';
@@ -1005,7 +979,6 @@
                                 ${p.notes || "No notes."}
                             </div>
                         </div>
-
                         <div style="padding-top:10px;">
                             <div class="proj-progress-row">
                                 <div class="proj-progress-label">
@@ -1015,11 +988,9 @@
                                 <div class="proj-bar-track" style="margin-bottom:15px;">
                                     <div class="proj-bar-fill" style="width: ${p.progress || 0}%"></div>
                                 </div>
-                                
                                 <input type="range" min="0" max="100" value="${p.progress || 0}" 
                                        oninput="document.getElementById('prog-val-${d.id}').innerText = this.value + '%'" 
                                        id="slider-${d.id}" style="margin-top:10px;">
-                                
                                 <button class="btn btn-primary" style="width:100%; margin-top:15px; font-size:12px; padding:10px;" 
                                         onclick="window.manualUpdateProgress('${d.id}')">
                                     Update Progress
@@ -1115,7 +1086,7 @@
         // --- EMPLOYER VIEW ---
         async function initEmployerView() {
             document.getElementById('nav-employer').classList.remove('hidden');
-            document.getElementById('mob-nav-employer').classList.remove('hidden'); // Show mobile nav
+            document.getElementById('mob-nav-employer').classList.remove('hidden');
             document.getElementById('dash-employer').classList.remove('hidden');
             renderCalendar('mgr-cal', false); 
             loadMyTeam();
@@ -1273,10 +1244,9 @@
             });
         }
 
-        // --- NEW CLOCK LOGIC (SIMPLIFIED) ---
+        // --- CLOCK LOGIC ---
         window.initiateClockToggle = async () => {
             if(!activeShiftId) {
-                // IMMEDIATE CLOCK IN
                 await addDoc(collection(db, "shifts"), { 
                     userId: currentUser.uid, 
                     startTime: serverTimestamp(), 
@@ -1285,7 +1255,6 @@
                     task: 'General Shift' 
                 });
             } else {
-                // IMMEDIATE CLOCK OUT
                 await updateDoc(doc(db, "shifts", activeShiftId), { endTime: serverTimestamp() });
             }
         }
