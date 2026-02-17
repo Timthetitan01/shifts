@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shift OS - Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Shift OS - Mobile Optimized</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <style>
@@ -30,6 +30,7 @@
             --shadow-lg: 0 20px 40px rgba(0,0,0,0.1);
             
             --transition: cubic-bezier(0.2, 0.8, 0.2, 1);
+            --nav-height: 0px; /* Default for desktop */
         }
 
         /* Dark Mode Variables */
@@ -79,10 +80,11 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100;
             background: rgba(200, 200, 200, 0.5); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px;
         }
         body.dark-mode #auth-overlay { background: rgba(0,0,0,0.5); }
 
-        .login-box { background: var(--card-bg); width: 380px; padding: 40px; border-radius: 30px; box-shadow: var(--shadow-lg); text-align: center; }
+        .login-box { background: var(--card-bg); width: 100%; max-width: 380px; padding: 40px; border-radius: 30px; box-shadow: var(--shadow-lg); text-align: center; }
 
         .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
         .role-option { background: var(--bg-body); padding: 20px; border-radius: var(--radius-m); cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
@@ -106,7 +108,7 @@
         .user-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
 
         /* Main Content */
-        main { flex: 1; padding: 40px; overflow-y: auto; }
+        main { flex: 1; padding: 40px; overflow-y: auto; padding-bottom: 40px; }
         
         h1 { font-size: 34px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
         h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
@@ -168,8 +170,8 @@
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: var(--text-tertiary); border-radius: 2px; }
 
         /* Modal */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); z-index: 200; display: flex; justify-content: center; align-items: center; }
-        .modal-card { background: var(--card-bg); padding: 30px; border-radius: 20px; width: 350px; box-shadow: var(--shadow-lg); animation: popIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); z-index: 200; display: flex; justify-content: center; align-items: center; padding: 20px;}
+        .modal-card { background: var(--card-bg); padding: 30px; border-radius: 20px; width: 100%; max-width: 350px; box-shadow: var(--shadow-lg); animation: popIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); max-height: 90vh; overflow-y: auto; }
         @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         
         .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--bg-body); }
@@ -197,11 +199,6 @@
             align-items: start;
         }
         
-        /* Mobile responsive: Stack them */
-        @media (max-width: 768px) {
-            .project-card-grid { grid-template-columns: 1fr; gap: 20px; }
-        }
-        
         .proj-notes-box {
             background: var(--bg-body); /* Creates the contrast box effect */
             border-radius: 16px;
@@ -213,33 +210,70 @@
             border: 1px solid rgba(0,0,0,0.02);
         }
         
-        .proj-progress-row {
-            margin-bottom: 15px;
+        .proj-progress-row { margin-bottom: 15px; }
+        .proj-progress-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text-primary); }
+        .proj-bar-track { width: 100%; height: 6px; background: var(--bg-body); border-radius: 10px; overflow: hidden; }
+        .proj-bar-fill { height: 100%; background: var(--accent-blue); border-radius: 10px; transition: width 0.5s ease; box-shadow: 0 0 10px rgba(0, 113, 227, 0.4); }
+
+        /* --- MOBILE NAV (New) --- */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; width: 100%;
+            background: var(--card-bg);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            padding: 10px 0;
+            justify-content: space-around;
+            z-index: 90;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* Safe area for iPhone home bar */
         }
-        
-        .proj-progress-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: var(--text-primary);
+        .mob-nav-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 10px; color: var(--text-secondary); gap: 4px; width: 60px;
+            cursor: pointer;
         }
-        
-        .proj-bar-track {
-            width: 100%;
-            height: 6px; /* Slim style like image */
-            background: var(--bg-body);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        .proj-bar-fill {
-            height: 100%;
-            background: var(--accent-blue); /* The bright blue from your image */
-            border-radius: 10px;
-            transition: width 0.5s ease;
-            box-shadow: 0 0 10px rgba(0, 113, 227, 0.4); /* Glow effect */
+        .mob-nav-item i { font-size: 20px; transition: 0.2s; }
+        .mob-nav-item.active { color: var(--accent-blue); font-weight: 600; }
+        .mob-nav-item.active i { transform: translateY(-2px); }
+
+        /* --- RESPONSIVE MEDIA QUERIES --- */
+        @media (max-width: 768px) {
+            :root { --nav-height: 70px; }
+            
+            /* Layout Structure */
+            body { flex-direction: column; }
+            aside { display: none; } /* Hide Sidebar */
+            .mobile-nav { display: flex; } /* Show Bottom Nav */
+            
+            main { 
+                padding: 20px 16px; 
+                padding-bottom: calc(var(--nav-height) + 20px); 
+                width: 100%;
+            }
+
+            /* Typography & Sizing */
+            h1 { font-size: 28px; }
+            .card { padding: 20px; border-radius: 20px; }
+
+            /* Bento Grid -> Single Column Feed */
+            .bento { grid-template-columns: 1fr; gap: 16px; grid-auto-rows: auto; }
+            .col-1, .col-2, .col-3, .row-2 { grid-column: auto; grid-row: auto; }
+
+            /* Project Card Stacking */
+            .project-card-grid { grid-template-columns: 1fr; gap: 20px; }
+            .proj-notes-box { margin-top: 15px; padding: 15px; }
+
+            /* Tables */
+            .staff-table { display: block; overflow-x: auto; white-space: nowrap; }
+
+            /* Widgets */
+            .clock-widget { padding: 30px 0; }
+            .clock-dial { width: 100px; height: 100px; }
+            .clock-dial i { font-size: 28px; }
+
+            /* Misc */
+            .emp-chip { min-width: 120px; padding: 8px; }
+            .emp-av-small { width: 24px; height: 24px; }
         }
     </style>
 </head>
@@ -355,26 +389,26 @@
         </div>
     </div>
 
-    <div id="app" class="hidden" style="width: 100%; display: flex;">
+    <div id="app" class="hidden" style="width: 100%;">
         <aside>
             <div class="nav-header">
                 <i class="fa-brands fa-apple" style="font-size: 24px;"></i> Shift
             </div>
 
             <div id="nav-employee" class="hidden">
-                <div class="nav-item active" onclick="switchView('dash-employee', this)"><i class="fa-solid fa-house"></i> Overview</div>
-                <div class="nav-item" onclick="switchView('view-schedule', this)"><i class="fa-solid fa-calendar"></i> Schedule</div>
-                <div class="nav-item" onclick="switchView('view-history', this)"><i class="fa-solid fa-clock-rotate-left"></i> History</div>
-                <div class="nav-item" onclick="switchView('view-projects-employee', this)"><i class="fa-solid fa-folder-open"></i> Projects</div>
-                <div class="nav-item" onclick="switchView('view-settings', this)"><i class="fa-solid fa-gear"></i> Settings</div>
+                <div class="nav-item active" onclick="switchView('dash-employee', this)" data-view="dash-employee"><i class="fa-solid fa-house"></i> Overview</div>
+                <div class="nav-item" onclick="switchView('view-schedule', this)" data-view="view-schedule"><i class="fa-solid fa-calendar"></i> Schedule</div>
+                <div class="nav-item" onclick="switchView('view-history', this)" data-view="view-history"><i class="fa-solid fa-clock-rotate-left"></i> History</div>
+                <div class="nav-item" onclick="switchView('view-projects-employee', this)" data-view="view-projects-employee"><i class="fa-solid fa-folder-open"></i> Projects</div>
+                <div class="nav-item" onclick="switchView('view-settings', this)" data-view="view-settings"><i class="fa-solid fa-gear"></i> Settings</div>
             </div>
 
             <div id="nav-employer" class="hidden">
-                <div class="nav-item active" onclick="switchView('dash-employer', this)"><i class="fa-solid fa-chart-pie"></i> Team Overview</div>
-                <div class="nav-item" onclick="switchView('view-staff-directory', this)"><i class="fa-solid fa-users"></i> Staff Directory</div>
-                <div class="nav-item" onclick="switchView('view-all-requests', this)"><i class="fa-solid fa-inbox"></i> Requests</div>
-                <div class="nav-item" onclick="switchView('view-projects-employer', this)"><i class="fa-solid fa-folder-open"></i> Projects</div>
-                <div class="nav-item" onclick="switchView('view-settings', this)"><i class="fa-solid fa-gear"></i> Settings</div>
+                <div class="nav-item active" onclick="switchView('dash-employer', this)" data-view="dash-employer"><i class="fa-solid fa-chart-pie"></i> Team Overview</div>
+                <div class="nav-item" onclick="switchView('view-staff-directory', this)" data-view="view-staff-directory"><i class="fa-solid fa-users"></i> Staff Directory</div>
+                <div class="nav-item" onclick="switchView('view-all-requests', this)" data-view="view-all-requests"><i class="fa-solid fa-inbox"></i> Requests</div>
+                <div class="nav-item" onclick="switchView('view-projects-employer', this)" data-view="view-projects-employer"><i class="fa-solid fa-folder-open"></i> Projects</div>
+                <div class="nav-item" onclick="switchView('view-settings', this)" data-view="view-settings"><i class="fa-solid fa-gear"></i> Settings</div>
             </div>
 
             <div class="user-profile">
@@ -386,6 +420,22 @@
             </div>
             <div id="my-code-display" style="text-align:center; font-size:10px; color:var(--text-tertiary); margin-top:10px;"></div>
         </aside>
+
+        <nav class="mobile-nav hidden" id="mob-nav-employee">
+            <div class="mob-nav-item active" onclick="switchView('dash-employee', this)" data-view="dash-employee"><i class="fa-solid fa-house"></i> Home</div>
+            <div class="mob-nav-item" onclick="switchView('view-schedule', this)" data-view="view-schedule"><i class="fa-solid fa-calendar"></i> Plan</div>
+            <div class="mob-nav-item" onclick="switchView('view-history', this)" data-view="view-history"><i class="fa-solid fa-clock-rotate-left"></i> History</div>
+            <div class="mob-nav-item" onclick="switchView('view-projects-employee', this)" data-view="view-projects-employee"><i class="fa-solid fa-folder-open"></i> Work</div>
+            <div class="mob-nav-item" onclick="switchView('view-settings', this)" data-view="view-settings"><i class="fa-solid fa-gear"></i> Set</div>
+        </nav>
+
+        <nav class="mobile-nav hidden" id="mob-nav-employer">
+            <div class="mob-nav-item active" onclick="switchView('dash-employer', this)" data-view="dash-employer"><i class="fa-solid fa-chart-pie"></i> Team</div>
+            <div class="mob-nav-item" onclick="switchView('view-staff-directory', this)" data-view="view-staff-directory"><i class="fa-solid fa-users"></i> Staff</div>
+            <div class="mob-nav-item" onclick="switchView('view-all-requests', this)" data-view="view-all-requests"><i class="fa-solid fa-inbox"></i> Reqs</div>
+            <div class="mob-nav-item" onclick="switchView('view-projects-employer', this)" data-view="view-projects-employer"><i class="fa-solid fa-folder-open"></i> Proj</div>
+            <div class="mob-nav-item" onclick="switchView('view-settings', this)" data-view="view-settings"><i class="fa-solid fa-gear"></i> Set</div>
+        </nav>
 
         <main>
             <div id="dash-employee" class="view-section hidden fade-in">
@@ -705,11 +755,18 @@
         }
 
         window.switchView = (viewId, btn) => {
+            // Hide all sections
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            // Show target section
             document.getElementById(viewId).classList.remove('hidden');
             
-            document.querySelectorAll('aside .nav-item').forEach(el => el.classList.remove('active'));
-            btn.classList.add('active');
+            // Remove active class from ALL nav items (desktop + mobile)
+            document.querySelectorAll('.nav-item, .mob-nav-item').forEach(el => el.classList.remove('active'));
+            
+            // Add active class to elements matching the viewId
+            // This ensures both sidebar and bottom nav highlight correctly
+            const matchingNavs = document.querySelectorAll(`[data-view="${viewId}"]`);
+            matchingNavs.forEach(el => el.classList.add('active'));
 
             if(viewId === 'view-schedule') loadSchedulePage();
             if(viewId === 'view-history') loadHistoryPage();
@@ -722,6 +779,7 @@
         // --- EMPLOYEE VIEW ---
         function initEmployeeView() {
             document.getElementById('nav-employee').classList.remove('hidden');
+            document.getElementById('mob-nav-employee').classList.remove('hidden'); // Show mobile nav
             document.getElementById('dash-employee').classList.remove('hidden');
             checkActiveShift();
             loadAvailability(currentUser.uid, 'emp-cal', true);
@@ -1057,6 +1115,7 @@
         // --- EMPLOYER VIEW ---
         async function initEmployerView() {
             document.getElementById('nav-employer').classList.remove('hidden');
+            document.getElementById('mob-nav-employer').classList.remove('hidden'); // Show mobile nav
             document.getElementById('dash-employer').classList.remove('hidden');
             renderCalendar('mgr-cal', false); 
             loadMyTeam();
