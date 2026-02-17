@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shift OS</title>
+    <title>Shift OS - Pro</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <style>
@@ -143,7 +143,7 @@
         /* Form Elements */
         textarea { width: 100%; border: none; background: var(--bg-body); color: var(--text-primary); border-radius: 12px; padding: 16px; font-size: 15px; resize: none; outline: none; transition: 0.2s; }
         textarea:focus { background: var(--card-bg); box-shadow: 0 0 0 2px var(--accent-blue); }
-        input[type="time"], input[type="date"], input[type="text"] { width: 100%; padding: 12px; border: 1px solid var(--text-tertiary); background: var(--bg-body); color: var(--text-primary); border-radius: 12px; margin-bottom: 10px; font-size:14px; }
+        input[type="time"], input[type="date"], input[type="text"], select { width: 100%; padding: 12px; border: 1px solid var(--text-tertiary); background: var(--bg-body); color: var(--text-primary); border-radius: 12px; margin-bottom: 10px; font-size:14px; outline:none; }
         
         /* Reachable Toggle Switch */
         .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
@@ -157,6 +157,15 @@
         .checkbox-list { max-height: 150px; overflow-y: auto; background: var(--bg-body); padding: 10px; border-radius: 12px; }
         .checkbox-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px solid rgba(0,0,0,0.05); }
         .checkbox-item input { width: auto; margin: 0; }
+
+        /* Progress Bar */
+        .progress-container { width: 100%; background-color: var(--bg-body); border-radius: 10px; height: 8px; margin-top: 10px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: var(--accent-blue); width: 0%; transition: width 0.5s ease; border-radius: 10px; }
+        
+        /* Range Slider */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; margin: 10px 0; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: var(--accent-blue); margin-top: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); cursor: pointer; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: var(--text-tertiary); border-radius: 2px; }
 
         /* Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); z-index: 200; display: flex; justify-content: center; align-items: center; }
@@ -182,6 +191,46 @@
     </style>
 </head>
 <body>
+
+    <div id="modal-clock-in" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h3>Start Shift</h3>
+            <p style="font-size:13px; color:var(--text-secondary); margin-bottom:20px;">What are you working on?</p>
+            
+            <label style="font-size:12px; font-weight:600;">PROJECT</label>
+            <select id="clock-in-project-select">
+                <option value="none">General / No Project</option>
+            </select>
+            
+            <label style="font-size:12px; font-weight:600;">TASK DESCRIPTION</label>
+            <input type="text" id="clock-in-desc" placeholder="e.g. Designing Homepage">
+            
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn btn-primary" style="flex:1" onclick="confirmClockIn()">Clock In</button>
+                <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-clock-in')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-clock-out" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h3>End Shift</h3>
+            <div id="clock-out-proj-container">
+                <p style="font-size:13px; color:var(--text-secondary); margin-bottom:15px;">Update progress for: <b id="clock-out-proj-name">Project</b></p>
+                
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <label style="font-size:12px; font-weight:600;">COMPLETION</label>
+                    <span id="clock-out-percent-val" style="font-size:12px; font-weight:600; color:var(--accent-blue);">0%</span>
+                </div>
+                <input type="range" id="clock-out-slider" min="0" max="100" value="0" oninput="document.getElementById('clock-out-percent-val').innerText = this.value + '%'">
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-primary" style="flex:1" onclick="confirmClockOut()">Clock Out</button>
+                <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-clock-out')">Cancel</button>
+            </div>
+        </div>
+    </div>
 
     <div id="modal-avail" class="modal-overlay hidden">
         <div class="modal-card">
@@ -332,7 +381,7 @@
 
                 <div class="bento">
                     <div class="card col-1 row-2 clock-widget">
-                        <div id="clock-ring" class="clock-dial" onclick="toggleClock()">
+                        <div id="clock-ring" class="clock-dial" onclick="initiateClockToggle()">
                             <i id="clock-ico" class="fa-solid fa-fingerprint"></i>
                         </div>
                         <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 5px;" id="clock-lbl">Clocked Out</div>
@@ -409,7 +458,7 @@
             
             <div id="view-projects-employee" class="view-section hidden fade-in">
                 <h1>Projects</h1>
-                <p class="subtext">Projects assigned to you.</p>
+                <p class="subtext">Update progress on your assigned projects.</p>
                 <div class="grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:20px;" id="emp-proj-list">
                     <div style="color:#999;">Loading projects...</div>
                 </div>
@@ -508,11 +557,11 @@
             
             <div id="view-projects-employer" class="view-section hidden fade-in">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div><h1>Projects</h1><p class="subtext">Manage team projects.</p></div>
+                    <div><h1>Projects</h1><p class="subtext">Manage team projects and view progress.</p></div>
                     <button class="btn btn-primary" onclick="openCreateProjectModal()">New Project</button>
                 </div>
                 <div class="grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:20px; margin-top:20px;" id="mgr-proj-list">
-                    </div>
+                </div>
             </div>
 
             <div id="view-settings" class="view-section hidden fade-in">
@@ -570,12 +619,13 @@
         let currentUser = null;
         let clockTimer;
         let activeShiftId = null;
+        let activeShiftProject = null; // Stores projectId of current active shift
         let selectedEmployeeId = null;
         let currentRole = null;
         let metricMode = 1; 
         const metricLabels = ["TODAY", "THIS WEEK", "ALL TIME"];
         let selectedDateForModal = null;
-        let mgrCalViewMode = 'list'; // Default as requested
+        let mgrCalViewMode = 'list';
 
         // --- AUTH & SETUP ---
         window.signIn = () => signInWithPopup(auth, provider);
@@ -652,7 +702,6 @@
             if(viewId === 'view-history') loadHistoryPage();
             if(viewId === 'view-staff-directory') loadStaffDirectory();
             if(viewId === 'view-all-requests') loadAllRequestsPage();
-            // New Projects
             if(viewId === 'view-projects-employer') loadEmployerProjects();
             if(viewId === 'view-projects-employee') loadEmployeeProjects();
         };
@@ -671,7 +720,6 @@
             onSnapshot(doc(db, "notes", currentUser.uid), (doc) => {
                 if (doc.exists() && doc.data().text) document.getElementById('emp-notes-text').innerText = doc.data().text;
             });
-            // Requests & Meetings listeners omitted for brevity but should remain same as before
             setupEmployeeListeners();
         }
 
@@ -785,6 +833,8 @@
                 name, description: desc, notes,
                 createdBy: currentUser.uid,
                 assignedTo: assignedTo,
+                progress: 0,
+                lastUpdate: serverTimestamp(),
                 createdAt: serverTimestamp()
             });
 
@@ -802,10 +852,29 @@
             
             snaps.forEach(doc => {
                 const p = doc.data();
+                // Determine last activity info
+                let lastInfo = "No activity yet";
+                if(p.lastWorkedBy) {
+                    lastInfo = `Last worked by ${p.lastWorkedBy}: "${p.lastTask || 'Work'}"`;
+                }
+
                 container.innerHTML += `
                     <div class="card">
                         <div style="font-weight:700; font-size:16px;">${p.name}</div>
-                        <div style="font-size:13px; color:var(--text-secondary); margin:5px 0 10px;">${p.description}</div>
+                        <div style="font-size:13px; color:var(--text-secondary); margin:5px 0;">${p.description}</div>
+                        
+                        <div style="margin-top:10px;">
+                            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600;">
+                                <span>PROGRESS</span>
+                                <span>${p.progress || 0}%</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar" style="width:${p.progress || 0}%"></div>
+                            </div>
+                            <div style="font-size:11px; color:var(--text-tertiary); margin-top:5px;">${lastInfo}</div>
+                        </div>
+
+                        <hr style="border:0; border-top:1px solid #f0f0f0; margin:10px 0;">
                         <div style="font-size:12px; background:var(--bg-body); padding:8px; border-radius:8px;">${p.notes || "No notes"}</div>
                         <div style="margin-top:10px; font-size:11px; color:var(--text-tertiary);">Assigned to ${p.assignedTo.length} employees</div>
                     </div>
@@ -821,18 +890,39 @@
             container.innerHTML = "";
             if(snaps.empty) { container.innerHTML = "<div style='color:#999'>No projects assigned.</div>"; return; }
             
-            snaps.forEach(doc => {
-                const p = doc.data();
+            snaps.forEach(d => {
+                const p = d.data();
                 container.innerHTML += `
                     <div class="card">
                         <div style="font-weight:700; font-size:16px; color:var(--accent-blue);">${p.name}</div>
                         <div style="font-size:13px; margin:5px 0;">${p.description}</div>
-                        <div style="font-size:12px; font-weight:600; margin-top:10px;">Manager Notes:</div>
+                        
+                        <div style="margin-top:15px; padding:15px; background:var(--bg-body); border-radius:12px;">
+                            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-bottom:5px;">
+                                <span>UPDATE PROGRESS</span>
+                                <span id="prog-val-${d.id}">${p.progress || 0}%</span>
+                            </div>
+                            <input type="range" min="0" max="100" value="${p.progress || 0}" oninput="document.getElementById('prog-val-${d.id}').innerText = this.value + '%'" id="slider-${d.id}">
+                            <button class="btn btn-primary" style="width:100%; margin-top:5px; font-size:12px; padding:8px;" onclick="window.manualUpdateProgress('${d.id}')">Save Progress</button>
+                        </div>
+
+                        <div style="font-size:12px; font-weight:600; margin-top:15px;">Manager Notes:</div>
                         <div style="font-size:12px; color:var(--text-secondary);">${p.notes}</div>
                     </div>
                 `;
             });
         }
+
+        window.manualUpdateProgress = async (projId) => {
+            const val = document.getElementById(`slider-${projId}`).value;
+            await updateDoc(doc(db, "projects", projId), {
+                progress: parseInt(val),
+                lastUpdate: serverTimestamp(),
+                lastWorkedBy: currentUser.displayName,
+                lastTask: "Manual Update"
+            });
+            alert("Progress Saved!");
+        };
 
         // --- SHARED CALENDAR/REQUEST/MEET ---
         function renderCalendar(id, interactive) {
@@ -986,7 +1076,6 @@
             const noteSnap = await getDoc(doc(db, "notes", uid));
             document.getElementById('mgr-note-in').value = noteSnap.exists() ? noteSnap.data().text : "";
             
-            // Fixed: use the current view mode
             if(mgrCalViewMode === 'cal') loadAvailability(uid, 'mgr-cal', false); else loadAvailabilityList(uid);
 
             const meetQ = query(collection(db, "meetings"), where("empId", "==", uid));
@@ -1014,7 +1103,6 @@
             document.getElementById('save-status').innerText = "Saved"; setTimeout(() => document.getElementById('save-status').innerText = "", 2000);
         };
 
-        // NEW PAGES LOGIC
         async function loadStaffDirectory() {
             const tbody = document.getElementById('staff-table-body');
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">Loading...</td></tr>';
@@ -1053,12 +1141,89 @@
         async function checkActiveShift() {
             const q = query(collection(db, "shifts"), where("userId", "==", currentUser.uid), where("endTime", "==", null), limit(1));
             onSnapshot(q, (snapshot) => {
-                if(!snapshot.empty) { activeShiftId = snapshot.docs[0].id; startClockUI(snapshot.docs[0].data().startTime.toDate()); } else { activeShiftId = null; stopClockUI(); }
+                if(!snapshot.empty) { 
+                    const data = snapshot.docs[0].data();
+                    activeShiftId = snapshot.docs[0].id; 
+                    activeShiftProject = data.projectId || 'none';
+                    startClockUI(data.startTime.toDate()); 
+                } else { 
+                    activeShiftId = null; 
+                    activeShiftProject = null;
+                    stopClockUI(); 
+                }
             });
         }
-        window.toggleClock = async () => { if (!activeShiftId) await addDoc(collection(db, "shifts"), { userId: currentUser.uid, startTime: serverTimestamp(), endTime: null }); else await updateDoc(doc(db, "shifts", activeShiftId), { endTime: serverTimestamp() }); };
+
+        // --- NEW CLOCK LOGIC ---
+        window.initiateClockToggle = async () => {
+            if(!activeShiftId) {
+                // CLOCKING IN
+                document.getElementById('modal-clock-in').classList.remove('hidden');
+                const sel = document.getElementById('clock-in-project-select');
+                sel.innerHTML = '<option value="none">General / No Project</option>';
+                const q = query(collection(db, "projects"), where("assignedTo", "array-contains", currentUser.uid));
+                const snaps = await getDocs(q);
+                snaps.forEach(doc => {
+                    const p = doc.data();
+                    const opt = document.createElement('option');
+                    opt.value = doc.id;
+                    opt.innerText = p.name;
+                    sel.appendChild(opt);
+                });
+                document.getElementById('clock-in-desc').value = "";
+            } else {
+                // CLOCKING OUT
+                if(activeShiftProject && activeShiftProject !== 'none') {
+                    // Fetch current progress to set slider default
+                    const pSnap = await getDoc(doc(db, "projects", activeShiftProject));
+                    if(pSnap.exists()) {
+                        document.getElementById('clock-out-proj-name').innerText = pSnap.data().name;
+                        document.getElementById('clock-out-slider').value = pSnap.data().progress || 0;
+                        document.getElementById('clock-out-percent-val').innerText = (pSnap.data().progress || 0) + '%';
+                        document.getElementById('clock-out-proj-container').style.display = 'block';
+                    } else {
+                         document.getElementById('clock-out-proj-container').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('clock-out-proj-container').style.display = 'none';
+                }
+                document.getElementById('modal-clock-out').classList.remove('hidden');
+            }
+        }
+
+        window.confirmClockIn = async () => {
+            const projId = document.getElementById('clock-in-project-select').value;
+            const desc = document.getElementById('clock-in-desc').value;
+            await addDoc(collection(db, "shifts"), { 
+                userId: currentUser.uid, 
+                startTime: serverTimestamp(), 
+                endTime: null,
+                projectId: projId,
+                task: desc 
+            });
+            closeModal('modal-clock-in');
+        };
+
+        window.confirmClockOut = async () => {
+            // 1. Update Shift
+            await updateDoc(doc(db, "shifts", activeShiftId), { endTime: serverTimestamp() });
+            
+            // 2. Update Project if applicable
+            if(activeShiftProject && activeShiftProject !== 'none') {
+                const progressVal = document.getElementById('clock-out-slider').value;
+                await updateDoc(doc(db, "projects", activeShiftProject), {
+                    progress: parseInt(progressVal),
+                    lastUpdate: serverTimestamp(),
+                    lastWorkedBy: currentUser.displayName,
+                    lastTask: "Shift Ended"
+                });
+            }
+            closeModal('modal-clock-out');
+        }
+
         function startClockUI(start) { document.getElementById('clock-ring').classList.add('active'); document.getElementById('clock-ico').className = "fa-solid fa-stop"; document.getElementById('clock-ico').style.color = "var(--accent-red)"; document.getElementById('clock-lbl').innerText = "On Shift"; document.getElementById('clock-lbl').style.color = "var(--accent-green)"; if(clockTimer) clearInterval(clockTimer); clockTimer = setInterval(() => { const diff = Math.floor((new Date() - start)/1000); const h = String(Math.floor(diff/3600)).padStart(2,'0'); const m = String(Math.floor((diff%3600)/60)).padStart(2,'0'); const s = String(diff%60).padStart(2,'0'); document.getElementById('clock-time').innerText = `${h}:${m}:${s}`; }, 1000); }
         function stopClockUI() { if(clockTimer) clearInterval(clockTimer); document.getElementById('clock-ring').classList.remove('active'); document.getElementById('clock-ico').className = "fa-solid fa-fingerprint"; document.getElementById('clock-ico').style.color = "var(--text-tertiary)"; document.getElementById('clock-lbl').innerText = "Clocked Out"; document.getElementById('clock-lbl').style.color = "var(--text-secondary)"; document.getElementById('clock-time').innerText = "00:00:00"; }
+        
         async function loadSchedulePage() { 
             const mount = document.getElementById('schedule-list-mount'); mount.innerHTML = "Loading...";
             const snap = await getDoc(doc(db, "availability", currentUser.uid));
