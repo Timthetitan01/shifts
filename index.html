@@ -117,7 +117,8 @@
         .role-option i { font-size: 24px; color: var(--text-secondary); margin-bottom: 8px; display: block; }
 
         /* Navigation */
-        .nav-header { font-size: 19px; font-weight: 700; margin-bottom: 32px; padding-left: 12px; display: flex; align-items: center; gap: 10px; }
+        .nav-header { font-size: 19px; font-weight: 700; margin-bottom: 32px; padding-left: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s; }
+        .nav-header:hover { opacity: 0.7; }
         .nav-item { padding: 10px 12px; border-radius: 10px; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 4px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: 0.2s; }
         .nav-item:hover { background: rgba(120,120,120,0.1); color: var(--text-primary); }
         .nav-item.active { background: rgba(120,120,120,0.15); color: var(--text-primary); font-weight: 600; }
@@ -412,7 +413,7 @@
     <div id="app" class="hidden">
         
         <aside>
-            <div class="nav-header">
+            <div class="nav-header" style="cursor: pointer;" onclick="goHome()">
                 <i class="fa-brands fa-apple" style="font-size: 24px;"></i> Shift UI
             </div>
 
@@ -761,6 +762,11 @@
             setTimeout(() => { if(document.getElementById('theme-toggle')) document.getElementById('theme-toggle').checked = true; }, 500);
         }
 
+        window.goHome = () => {
+            const view = currentRole === 'employee' ? 'dash-employee' : 'dash-employer';
+            switchView(view);
+        };
+
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
@@ -808,11 +814,42 @@
         function launchApp(role) {
             document.getElementById('auth-overlay').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
-            if(role === 'employee') initEmployeeView();
-            else initEmployerView();
+            
+            // Show appropriate Nav based on Role
+            if(role === 'employee') {
+                 document.getElementById('nav-employee').classList.remove('hidden');
+                 document.getElementById('mob-nav-employee').classList.remove('hidden');
+                 checkActiveShift();
+                 loadAvailability(currentUser.uid, 'emp-cal', true);
+                 calculateMetrics();
+                 
+                 getDoc(doc(db, "users", currentUser.uid)).then(snap => {
+                     if(snap.exists()) document.getElementById('reachable-toggle').checked = snap.data().isReachable;
+                 });
+                 onSnapshot(doc(db, "notes", currentUser.uid), (doc) => {
+                     if (doc.exists() && doc.data().text) document.getElementById('emp-notes-text').innerText = doc.data().text;
+                 });
+                 setupEmployeeListeners();
+            } else {
+                 document.getElementById('nav-employer').classList.remove('hidden');
+                 document.getElementById('mob-nav-employer').classList.remove('hidden');
+                 renderCalendar('mgr-cal', false); 
+                 loadMyTeam();
+                 setupEmployerListeners();
+            }
+
+            // RESTORE LAST TAB
+            let lastView = localStorage.getItem('lastView');
+            if(!lastView || !document.getElementById(lastView)) {
+                // Default if no history
+                lastView = role === 'employee' ? 'dash-employee' : 'dash-employer';
+            }
+            switchView(lastView);
         }
 
         window.switchView = (viewId, btn) => {
+            localStorage.setItem('lastView', viewId);
+
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
             document.getElementById(viewId).classList.remove('hidden');
             
@@ -870,25 +907,7 @@
             if(!document.getElementById('view-staff-directory').classList.contains('hidden')) loadStaffDirectory();
         };
 
-        // --- EMPLOYEE VIEW ---
-        function initEmployeeView() {
-            document.getElementById('nav-employee').classList.remove('hidden');
-            document.getElementById('mob-nav-employee').classList.remove('hidden');
-            document.getElementById('dash-employee').classList.remove('hidden');
-            
-            checkActiveShift();
-            loadAvailability(currentUser.uid, 'emp-cal', true);
-            calculateMetrics();
-            
-            getDoc(doc(db, "users", currentUser.uid)).then(snap => {
-                if(snap.exists()) document.getElementById('reachable-toggle').checked = snap.data().isReachable;
-            });
-            onSnapshot(doc(db, "notes", currentUser.uid), (doc) => {
-                if (doc.exists() && doc.data().text) document.getElementById('emp-notes-text').innerText = doc.data().text;
-            });
-            setupEmployeeListeners();
-        }
-
+        // --- EMPLOYEE LISTENERS (Moved to init func) ---
         function setupEmployeeListeners() {
              const reqQ = query(collection(db, "requests"), where("userId", "==", currentUser.uid));
              onSnapshot(reqQ, (snapshot) => {
@@ -1146,7 +1165,7 @@
         // --- NEW EMPLOYEE STATS VIEW LOGIC (REAL-TIME FIX) ---
         async function loadEmployeeStatsSelector() {
             const select = document.getElementById('stats-emp-select');
-            // Keep existing options if already populated to avoid flickering
+            
             if(select.options.length <= 1){
                 select.innerHTML = '<option value="">Select an employee...</option>';
                 const userRef = doc(db, "users", currentUser.uid);
@@ -1164,9 +1183,19 @@
                     }
                 }
             }
+
+            // Restore last selected
+            const last = localStorage.getItem('lastAnalyticsEmp');
+            if(last && select.querySelector(`option[value="${last}"]`)) {
+                select.value = last;
+                loadStatsForEmp(last);
+            }
         }
 
         window.loadStatsForEmp = (uid) => {
+            // Save state
+            if(uid) localStorage.setItem('lastAnalyticsEmp', uid);
+
             // Unsubscribe previous listeners if any
             if(statsUnsubShifts) statsUnsubShifts();
             if(statsUnsubProjs) statsUnsubProjs();
@@ -1193,12 +1222,13 @@
                     const d = doc.data();
                     count++; // Count every shift entry (active or closed)
                     
-                    if (d.startTime) {
+                    // Only add time if the shift is finished
+                    if(d.startTime) {
                         const start = d.startTime.toDate();
                         if (d.endTime) {
                             ms += (d.endTime.toDate() - start);
                         } else {
-                            // Active shift! Calculate time until now.
+                            // Active shift! Add elapsed time so far.
                             ms += (new Date() - start);
                         }
                     }
@@ -1351,6 +1381,10 @@
                     const emp = empSnap.data();
                     const d = document.createElement('div'); d.className = 'emp-chip'; d.id = `chip-${uid}`;
                     d.onclick = () => selectEmp(empSnap.id, emp, d);
+                    
+                    // Add right-click listener
+                    d.oncontextmenu = (e) => showContextMenu(e, uid);
+
                     d.innerHTML = `<img src="${emp.photo}" class="emp-av-small"><div style="font-size:13px; font-weight:500;">${emp.name}</div>`;
                     list.appendChild(d);
                     if(uid === lastSelected) selectEmp(uid, emp, d);
