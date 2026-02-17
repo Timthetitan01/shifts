@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shift OS</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Apple System Colors (Light Mode Default) */
+            --bg-body: #F5F5F7;
+            --card-bg: #FFFFFF;
+            --sidebar-bg: rgba(245, 245, 247, 0.85);
+            
+            --text-primary: #1D1D1F;
+            --text-secondary: #86868B;
+            --text-tertiary: #C2C2C7;
+            
+            --accent-blue: #0071E3;
+            --accent-green: #34C759;
+            --accent-red: #FF3B30;
+            --accent-orange: #FF9500;
+            --accent-purple: #AF52DE;
+            
+            --radius-l: 24px;
+            --radius-m: 16px;
+            
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+            --shadow-lg: 0 20px 40px rgba(0,0,0,0.1);
+            
+            --transition: cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        /* Dark Mode Variables */
+        body.dark-mode {
+            --bg-body: #000000;
+            --card-bg: #1C1C1E;
+            --sidebar-bg: rgba(28, 28, 30, 0.85);
+            
+            --text-primary: #FFFFFF;
+            --text-secondary: #8E8E93;
+            --text-tertiary: #48484A;
+            
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.2);
+            --shadow-lg: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; -webkit-font-smoothing: antialiased; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* --- Animations --- */
+        .fade-in { animation: fadeIn 0.6s var(--transition) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        .hidden { display: none !important; }
+
+        /* --- Components --- */
+        .btn { border: none; cursor: pointer; transition: all 0.2s; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary { background: var(--text-primary); color: var(--card-bg); padding: 12px 24px; border-radius: 99px; }
+        .btn-primary:hover { transform: scale(1.02); opacity: 0.9; }
+        .btn-ghost { background: transparent; color: var(--accent-blue); padding: 8px 16px; border-radius: 8px; }
+        .btn-ghost:hover { background: rgba(0,113,227,0.1); }
+        
+        .btn-icon { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; background:rgba(120,120,120,0.1); color:var(--text-primary); transition:0.2s; border:none; }
+        .btn-icon:hover { background:rgba(120,120,120,0.2); }
+
+        .card { background: var(--card-bg); border-radius: var(--radius-l); box-shadow: var(--shadow-sm); padding: 24px; position: relative; transition: transform 0.3s, background-color 0.3s; }
+
+        /* --- Layout --- */
+        #auth-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100;
+            background: rgba(200, 200, 200, 0.5); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        body.dark-mode #auth-overlay { background: rgba(0,0,0,0.5); }
+
+        .login-box { background: var(--card-bg); width: 380px; padding: 40px; border-radius: 30px; box-shadow: var(--shadow-lg); text-align: center; }
+
+        .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
+        .role-option { background: var(--bg-body); padding: 20px; border-radius: var(--radius-m); cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+        .role-option:hover { background: var(--card-bg); border-color: var(--accent-blue); box-shadow: var(--shadow-sm); }
+        .role-option i { font-size: 24px; color: var(--text-secondary); margin-bottom: 8px; display: block; }
+
+        /* Sidebar */
+        aside {
+            width: 260px; height: 100%; padding: 32px 20px;
+            background: var(--sidebar-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(120,120,120,0.1); display: flex; flex-direction: column; transition: background-color 0.3s;
+        }
+        
+        .nav-header { font-size: 19px; font-weight: 700; margin-bottom: 32px; padding-left: 12px; display: flex; align-items: center; gap: 10px; }
+        .nav-item { padding: 10px 12px; border-radius: 10px; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 4px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: 0.2s; }
+        .nav-item:hover { background: rgba(120,120,120,0.1); color: var(--text-primary); }
+        .nav-item.active { background: rgba(120,120,120,0.15); color: var(--text-primary); font-weight: 600; }
+        .nav-item i { width: 20px; text-align: center; font-size: 16px; }
+
+        .user-profile { margin-top: auto; padding: 12px; border-radius: 14px; display: flex; align-items: center; gap: 12px; background: var(--card-bg); box-shadow: var(--shadow-sm); }
+        .user-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+
+        /* Main Content */
+        main { flex: 1; padding: 40px; overflow-y: auto; }
+        
+        h1 { font-size: 34px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
+        h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
+        .subtext { color: var(--text-secondary); font-size: 15px; margin-bottom: 32px; }
+
+        /* Bento Grid */
+        .bento { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; grid-auto-rows: minmax(180px, auto); }
+        .col-1 { grid-column: span 1; }
+        .col-2 { grid-column: span 2; }
+        .col-3 { grid-column: span 3; }
+        .row-2 { grid-row: span 2; }
+
+        /* Clock Widget */
+        .clock-widget { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; }
+        .clock-dial { width: 120px; height: 120px; border-radius: 50%; background: var(--card-bg); box-shadow: inset 0 0 20px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; cursor: pointer; transition: 0.3s; border: 4px solid var(--bg-body); }
+        .clock-dial.active { border-color: var(--accent-green); box-shadow: 0 0 30px rgba(52, 199, 89, 0.3); }
+        .clock-dial i { font-size: 32px; color: var(--text-tertiary); transition: 0.3s; }
+        .clock-dial.active i { color: var(--accent-green); }
+
+        /* Calendar */
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .cal-day { height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 13px; cursor: pointer; color: var(--text-primary); }
+        .cal-day:hover { background: var(--bg-body); }
+        .cal-day.active { background: var(--accent-blue); color: white; }
+        .cal-day.today { border: 1px solid var(--accent-blue); color: var(--accent-blue); }
+
+        /* Employee List (Horizontal) */
+        .emp-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+        .emp-chip { min-width: 140px; padding: 10px; background: var(--card-bg); border-radius: 50px; display: flex; align-items: center; gap: 10px; cursor: pointer; box-shadow: var(--shadow-sm); border: 2px solid transparent; transition: 0.2s; }
+        .emp-chip:hover { transform: translateY(-2px); }
+        .emp-chip.selected { border-color: var(--accent-blue); background: var(--bg-body); }
+        .emp-av-small { width: 30px; height: 30px; border-radius: 50%; background: #ddd; }
+
+        /* Form Elements */
+        textarea { width: 100%; border: none; background: var(--bg-body); color: var(--text-primary); border-radius: 12px; padding: 16px; font-size: 15px; resize: none; outline: none; transition: 0.2s; }
+        textarea:focus { background: var(--card-bg); box-shadow: 0 0 0 2px var(--accent-blue); }
+        input[type="time"], input[type="date"], input[type="text"] { width: 100%; padding: 12px; border: 1px solid var(--text-tertiary); background: var(--bg-body); color: var(--text-primary); border-radius: 12px; margin-bottom: 10px; font-size:14px; }
+        
+        /* Reachable Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--text-tertiary); transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent-green); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); z-index: 200; display: flex; justify-content: center; align-items: center; }
+        .modal-card { background: var(--card-bg); padding: 30px; border-radius: 20px; width: 350px; box-shadow: var(--shadow-lg); animation: popIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--bg-body); }
+        .list-item:last-child { border-bottom: none; }
+        
+        .staff-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .staff-table th { text-align: left; color: var(--text-secondary); font-size: 12px; font-weight: 600; padding: 10px; border-bottom: 1px solid var(--bg-body); }
+        .staff-table td { padding: 15px 10px; font-size: 14px; border-bottom: 1px solid var(--bg-body); }
+        .staff-table tr:last-child td { border-bottom: none; }
+
+        /* Settings List */
+        .settings-list { margin-top: 20px; }
+        .settings-item { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid var(--bg-body); font-size: 15px; }
+        .settings-item:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+    <div id="modal-avail" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h3 style="margin-bottom: 20px;">Set Availability</h3>
+            <div id="avail-date-display" style="color:var(--text-secondary); margin-bottom: 15px; font-size: 14px;"></div>
+            <label style="font-size:12px; font-weight:600;">START TIME</label>
+            <input type="time" id="avail-start">
+            <label style="font-size:12px; font-weight:600;">END TIME</label>
+            <input type="time" id="avail-end">
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn btn-primary" style="flex:1" onclick="confirmAvailability()">Save</button>
+                <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-avail')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-req" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h3 style="margin-bottom: 20px;">Request Time Off</h3>
+            <label style="font-size:12px; font-weight:600;">DATE</label>
+            <input type="date" id="req-date">
+            <label style="font-size:12px; font-weight:600;">HOURS (Optional)</label>
+            <div style="display:flex; gap:10px;">
+                <input type="time" id="req-start">
+                <input type="time" id="req-end">
+            </div>
+            <label style="font-size:12px; font-weight:600;">REASON</label>
+            <input type="text" id="req-reason" placeholder="Vacation, Sick, etc.">
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn btn-primary" style="flex:1" onclick="submitRequest()">Submit</button>
+                <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-req')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-meet" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h3 style="margin-bottom: 20px;">Schedule Meeting</h3>
+            <label style="font-size:12px; font-weight:600;">DATE</label>
+            <input type="date" id="meet-date">
+            <label style="font-size:12px; font-weight:600;">TIME</label>
+            <input type="time" id="meet-time">
+            <label style="font-size:12px; font-weight:600;">TOPIC</label>
+            <input type="text" id="meet-topic" placeholder="e.g. Performance Review">
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn btn-primary" style="flex:1" onclick="submitMeeting()">Schedule</button>
+                <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-meet')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-add-emp" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h3>Add Employee</h3>
+            <p style="font-size:13px; color:var(--text-secondary); margin:10px 0 20px;">Enter the 5-digit code from the employee's profile.</p>
+            <input type="text" id="emp-code-input" placeholder="e.g. 12345" maxlength="5" style="text-align:center; font-size:24px; letter-spacing: 5px;">
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn btn-primary" style="flex:1" onclick="executeAddEmployee()">Add</button>
+                <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-add-emp')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="auth-overlay">
+        <div id="login-card" class="login-box fade-in">
+            <div style="font-size: 48px; color: var(--accent-blue); margin-bottom: 16px;">
+                <i class="fa-brands fa-apple"></i>
+            </div>
+            <h1>Shift OS</h1>
+            <p class="subtext">Workforce management, simplified.</p>
+            <button class="btn btn-primary" style="width: 100%;" onclick="signIn()">
+                <i class="fa-brands fa-google"></i> Continue with Google
+            </button>
+        </div>
+
+        <div id="role-card" class="login-box hidden">
+            <h2>Select Profile</h2>
+            <div class="role-grid">
+                <div class="role-option" onclick="setRole('employee')">
+                    <i class="fa-regular fa-id-card"></i>
+                    <div>Employee</div>
+                </div>
+                <div class="role-option" onclick="setRole('employer')">
+                    <i class="fa-solid fa-briefcase"></i>
+                    <div>Employer</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" class="hidden" style="width: 100%; display: flex;">
+        <aside>
+            <div class="nav-header">
+                <i class="fa-brands fa-apple" style="font-size: 24px;"></i> Shift
+            </div>
+
+            <div id="nav-employee" class="hidden">
+                <div class="nav-item active" onclick="switchView('dash-employee', this)"><i class="fa-solid fa-house"></i> Overview</div>
+                <div class="nav-item" onclick="switchView('view-schedule', this)"><i class="fa-solid fa-calendar"></i> Schedule</div>
+                <div class="nav-item" onclick="switchView('view-history', this)"><i class="fa-solid fa-clock-rotate-left"></i> History</div>
+                <div class="nav-item" onclick="switchView('view-settings', this)"><i class="fa-solid fa-gear"></i> Settings</div>
+            </div>
+
+            <div id="nav-employer" class="hidden">
+                <div class="nav-item active" onclick="switchView('dash-employer', this)"><i class="fa-solid fa-chart-pie"></i> Team Overview</div>
+                <div class="nav-item" onclick="switchView('view-staff-directory', this)"><i class="fa-solid fa-users"></i> Staff Directory</div>
+                <div class="nav-item" onclick="switchView('view-all-requests', this)"><i class="fa-solid fa-inbox"></i> Requests</div>
+                <div class="nav-item" onclick="switchView('view-settings', this)"><i class="fa-solid fa-gear"></i> Settings</div>
+            </div>
+
+            <div class="user-profile">
+                <img id="u-avatar" src="" class="user-avatar">
+                <div style="flex:1;">
+                    <div style="font-size:13px; font-weight:600;" id="u-name">...</div>
+                    <div style="font-size:11px; color:var(--text-secondary); cursor:pointer;" onclick="logout()">Sign Out</div>
+                </div>
+            </div>
+            <div id="my-code-display" style="text-align:center; font-size:10px; color:var(--text-tertiary); margin-top:10px;"></div>
+        </aside>
+
+        <main>
+            <div id="dash-employee" class="view-section hidden fade-in">
+                <h1 id="greet-emp">Good Morning</h1>
+                <p class="subtext">Here is your dashboard for the day.</p>
+
+                <div class="bento">
+                    <div class="card col-1 row-2 clock-widget">
+                        <div id="clock-ring" class="clock-dial" onclick="toggleClock()">
+                            <i id="clock-ico" class="fa-solid fa-fingerprint"></i>
+                        </div>
+                        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 1px; margin-bottom: 5px;" id="clock-lbl">Clocked Out</div>
+                        <div style="font-size: 24px; font-weight: 500; font-variant-numeric: tabular-nums;" id="clock-time">00:00:00</div>
+                        <div style="margin-top:20px; display:flex; flex-direction:column; align-items:center; gap:5px;">
+                            <label class="switch">
+                                <input type="checkbox" id="reachable-toggle" onchange="toggleReachable()">
+                                <span class="slider"></span>
+                            </label>
+                            <span style="font-size:11px; color:var(--text-secondary);" id="reachable-label">Reachable</span>
+                        </div>
+                    </div>
+
+                    <div class="card col-2 row-2">
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 15px;">
+                            <h2>Availability</h2>
+                            <div style="font-size:12px; color:var(--text-secondary);">Click dates to set times</div>
+                        </div>
+                        <div class="cal-grid" id="emp-cal"></div>
+                    </div>
+
+                    <div class="card col-1">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <button class="btn-icon" onclick="changeMetric(-1)"><i class="fa-solid fa-chevron-left" style="font-size:12px"></i></button>
+                            <div id="metric-label" style="color:var(--text-secondary); font-size:13px; font-weight:600; text-transform:uppercase;">THIS WEEK</div>
+                            <button class="btn-icon" onclick="changeMetric(1)"><i class="fa-solid fa-chevron-right" style="font-size:12px"></i></button>
+                        </div>
+                        <div style="font-size:42px; font-weight:700; margin-top: 5px; text-align:center;" id="metric-val">0.0</div>
+                        <div style="color:var(--text-tertiary); font-size:11px; text-align:center;">Hours worked</div>
+                    </div>
+
+                    <div class="card col-1">
+                        <div style="color:var(--text-secondary); font-size:13px; font-weight:600; margin-bottom:10px;">MANAGER NOTES</div>
+                        <div id="emp-notes-text" style="font-size:14px; color:var(--text-primary); line-height:1.4;">No new notes.</div>
+                    </div>
+
+                    <div class="card col-2 row-2">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <h2>Time Off</h2>
+                            <button class="btn-icon" onclick="openModal('modal-req')"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div id="emp-req-list" style="overflow-y:auto; height:180px; display:flex; flex-direction:column; gap:10px;">
+                            <div style="color:var(--text-tertiary); font-size:13px; text-align:center; margin-top:40px;">No active requests</div>
+                        </div>
+                    </div>
+
+                    <div class="card col-2 row-2">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <h2>Meetings</h2>
+                            <button class="btn-icon" onclick="openModal('modal-meet')"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div id="emp-meet-list" style="overflow-y:auto; height:180px; display:flex; flex-direction:column; gap:10px;">
+                            <div style="color:var(--text-tertiary); font-size:13px; text-align:center; margin-top:40px;">No meetings scheduled</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-schedule" class="view-section hidden fade-in">
+                <h1>My Schedule</h1>
+                <p class="subtext">Your upcoming availability and shifts.</p>
+                <div class="card">
+                    <div id="schedule-list-mount">Loading...</div>
+                </div>
+            </div>
+
+            <div id="view-history" class="view-section hidden fade-in">
+                <h1>Work History</h1>
+                <p class="subtext">Past shifts and duration.</p>
+                <div class="card">
+                    <div id="history-list-mount">Loading...</div>
+                </div>
+            </div>
+
+            <div id="dash-employer" class="view-section hidden fade-in">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h1>Team</h1>
+                    <button class="btn btn-primary" onclick="openModal('modal-add-emp')"><i class="fa-solid fa-plus"></i> Add</button>
+                </div>
+
+                <div class="emp-scroll" id="emp-list">
+                    <div style="padding:10px; color:var(--text-secondary); font-size:14px;">No employees added. Use the Add button.</div>
+                </div>
+
+                <hr style="border:0; border-top:1px solid rgba(0,0,0,0.05); margin: 30px 0;">
+
+                <div class="bento">
+                    <div class="card col-2 row-2">
+                        <div style="display:flex; justify-content:space-between;">
+                            <div>
+                                <h2 id="mgr-name" style="margin-bottom:4px;">Select Employee</h2>
+                                <div id="mgr-status-indicator" style="font-size:12px; font-weight:600; margin-bottom:4px;"></div>
+                                <div id="mgr-role" style="color:var(--text-secondary); font-size:14px;">Select from list above</div>
+                            </div>
+                            <img class="emp-av-small" style="width:48px; height:48px;" id="mgr-av" src="https://via.placeholder.com/48">
+                        </div>
+                        <div style="margin-top:30px;">
+                            <div style="font-size:12px; font-weight:700; color:var(--text-secondary); margin-bottom:10px;">WRITE A NOTE</div>
+                            <textarea id="mgr-note-in" rows="4" placeholder="Type a note for this employee..." oninput="saveNote()"></textarea>
+                            <div style="text-align:right; margin-top:5px; font-size:11px; color:var(--accent-green);" id="save-status"></div>
+                        </div>
+                    </div>
+
+                    <div class="card col-2 row-2">
+                        <h2>Schedule</h2>
+                        <div class="cal-grid" id="mgr-cal" style="opacity: 0.6; pointer-events: none;"></div>
+                    </div>
+
+                    <div class="card col-2">
+                        <h2>Time Off Requests</h2>
+                        <div id="mgr-req-list" style="display:flex; flex-direction:column; gap:10px;">
+                            <div style="color:var(--text-secondary); font-size:13px;">No pending requests.</div>
+                        </div>
+                    </div>
+
+                    <div class="card col-2">
+                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <h2>Meetings</h2>
+                            <button class="btn-icon" onclick="openModal('modal-meet')"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div id="mgr-meet-list" style="display:flex; flex-direction:column; gap:10px;">
+                             <div style="color:var(--text-secondary); font-size:13px;">Select an employee to schedule.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-staff-directory" class="view-section hidden fade-in">
+                <h1>Staff Directory</h1>
+                <p class="subtext">Manage all your employees.</p>
+                <div class="card">
+                    <table class="staff-table">
+                        <thead>
+                            <tr><th>Name</th><th>ID Code</th><th>Status</th><th>Email</th></tr>
+                        </thead>
+                        <tbody id="staff-table-body">
+                            <tr><td colspan="4" style="text-align:center; padding:20px;">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-all-requests" class="view-section hidden fade-in">
+                <h1>All Requests</h1>
+                <p class="subtext">History of all time-off requests.</p>
+                <div class="card">
+                    <div id="all-requests-list" style="display:flex; flex-direction:column; gap:10px;">
+                        <div style="color:#999;">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-settings" class="view-section hidden fade-in">
+                <h1>Settings</h1>
+                <p class="subtext">Manage app preferences.</p>
+                <div class="card" style="max-width: 600px;">
+                    <div class="settings-list">
+                        <div class="settings-item">
+                            <div>
+                                <div style="font-weight:600;">Dark Mode</div>
+                                <div style="font-size:12px; color:var(--text-secondary);">Toggle dark color theme</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="settings-item">
+                            <div>
+                                <div style="font-weight:600;">Account Info</div>
+                                <div style="font-size:12px; color:var(--text-secondary);" id="settings-email">email@example.com</div>
+                            </div>
+                        </div>
+                        <div class="settings-item" style="color:var(--accent-red); cursor:pointer;" onclick="logout()">
+                            Sign Out
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, getDocs, updateDoc, onSnapshot, serverTimestamp, limit, arrayUnion, deleteField } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // CONFIGURATION (PASTE YOUR KEYS HERE)
+        const firebaseConfig = {
+          apiKey: "AIzaSyAEz-ZK6MkhelfjlJi3lmaFDsY1ZCvUkbU",
+          authDomain: "schedule-6f99b.firebaseapp.com",
+          projectId: "schedule-6f99b",
+          storageBucket: "schedule-6f99b.firebasestorage.app",
+          messagingSenderId: "634743657957",
+          appId: "1:634743657957:web:40e92585d53d9b39508b0c",
+          measurementId: "G-SSS43060WR"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        let currentUser = null;
+        let clockTimer;
+        let activeShiftId = null;
+        let selectedEmployeeId = null;
+        let currentRole = null;
+        let metricMode = 1; 
+        const metricLabels = ["TODAY", "THIS WEEK", "ALL TIME"];
+        let selectedDateForModal = null;
+
+        // --- AUTH & SETUP ---
+        window.signIn = () => signInWithPopup(auth, provider);
+        
+        window.logout = () => {
+            signOut(auth).then(() => window.location.reload());
+        };
+
+        // Theme Logic
+        window.toggleTheme = () => {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        };
+        // Init Theme
+        if(localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+            setTimeout(() => { if(document.getElementById('theme-toggle')) document.getElementById('theme-toggle').checked = true; }, 500);
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('login-card').classList.add('hidden');
+                document.getElementById('u-avatar').src = user.photoURL;
+                document.getElementById('u-name').innerText = user.displayName;
+                document.getElementById('greet-emp').innerText = `Good Morning, ${user.displayName.split(' ')[0]}`;
+                document.getElementById('settings-email').innerText = user.email;
+
+                const userRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userRef);
+
+                if (userSnap.exists() && userSnap.data().role) {
+                    const userData = userSnap.data();
+                    document.getElementById('my-code-display').innerText = `ID: ${userData.employeeCode || '...'}`;
+                    currentRole = userData.role;
+                    launchApp(userData.role);
+                } else {
+                    document.getElementById('role-card').classList.remove('hidden');
+                }
+            }
+        });
+
+        window.setRole = async (role) => {
+            let uniqueCode = Math.floor(10000 + Math.random() * 90000).toString();
+            const q = query(collection(db, "users"), where("employeeCode", "==", uniqueCode));
+            const snap = await getDocs(q);
+            if(!snap.empty) uniqueCode = Math.floor(10000 + Math.random() * 90000).toString();
+
+            await setDoc(doc(db, "users", currentUser.uid), {
+                name: currentUser.displayName,
+                email: currentUser.email,
+                photo: currentUser.photoURL,
+                role: role,
+                employeeCode: uniqueCode,
+                managedEmployees: [],
+                isReachable: true
+            }, { merge: true });
+
+            document.getElementById('my-code-display').innerText = `ID: ${uniqueCode}`;
+            currentRole = role;
+            launchApp(role);
+        };
+
+        function launchApp(role) {
+            document.getElementById('auth-overlay').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            if(role === 'employee') initEmployeeView();
+            else initEmployerView();
+        }
+
+        window.switchView = (viewId, btn) => {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(viewId).classList.remove('hidden');
+            
+            document.querySelectorAll('aside .nav-item').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+
+            if(viewId === 'view-schedule') loadSchedulePage();
+            if(viewId === 'view-history') loadHistoryPage();
+            if(viewId === 'view-staff-directory') loadStaffDirectory();
+            if(viewId === 'view-all-requests') loadAllRequestsPage();
+        };
+
+        // --- EMPLOYEE VIEW ---
+        function initEmployeeView() {
+            document.getElementById('nav-employee').classList.remove('hidden');
+            document.getElementById('dash-employee').classList.remove('hidden');
+            checkActiveShift();
+            loadAvailability(currentUser.uid, 'emp-cal', true);
+            calculateMetrics();
+            
+            getDoc(doc(db, "users", currentUser.uid)).then(snap => {
+                if(snap.exists()) document.getElementById('reachable-toggle').checked = snap.data().isReachable;
+            });
+            
+            onSnapshot(doc(db, "notes", currentUser.uid), (doc) => {
+                if (doc.exists() && doc.data().text) document.getElementById('emp-notes-text').innerText = doc.data().text;
+            });
+
+            const reqQ = query(collection(db, "requests"), where("userId", "==", currentUser.uid));
+            onSnapshot(reqQ, (snapshot) => {
+                const list = document.getElementById('emp-req-list');
+                list.innerHTML = "";
+                if (snapshot.empty) return list.innerHTML = "<div style='color:var(--text-tertiary); font-size:13px; text-align:center; margin-top:40px;'>No active requests</div>";
+                const reqs = []; snapshot.forEach(doc => reqs.push({id: doc.id, ...doc.data()}));
+                reqs.sort((a,b) => new Date(a.date) - new Date(b.date));
+                reqs.forEach(req => {
+                    let statusColor = '#888'; let icon = 'clock';
+                    if(req.status === 'approved') { statusColor = 'var(--accent-green)'; icon = 'check'; }
+                    if(req.status === 'denied') { statusColor = 'var(--accent-red)'; icon = 'xmark'; }
+                    const item = document.createElement('div');
+                    item.style = "display:flex; justify-content:space-between; align-items:center; padding:10px; background:var(--bg-body); border-radius:12px;";
+                    item.innerHTML = `<div><div style="font-weight:600; font-size:13px;">${req.date}</div><div style="font-size:11px; color:var(--text-secondary);">${req.reason}</div></div><div style="color:${statusColor}; font-size:12px; font-weight:600; text-transform:uppercase; display:flex; align-items:center; gap:5px;"><i class="fa-solid fa-${icon}"></i> ${req.status}</div>`;
+                    list.appendChild(item);
+                });
+            });
+
+            const meetQ = query(collection(db, "meetings"), where("empId", "==", currentUser.uid));
+            onSnapshot(meetQ, (snapshot) => {
+                const list = document.getElementById('emp-meet-list'); list.innerHTML = "";
+                if(snapshot.empty) return list.innerHTML = "<div style='color:var(--text-tertiary); font-size:13px; text-align:center; margin-top:40px;'>No meetings</div>";
+                const meets = []; snapshot.forEach(doc => meets.push({id: doc.id, ...doc.data()}));
+                meets.sort((a,b) => new Date(a.date) - new Date(b.date));
+                meets.forEach(m => {
+                    let icon = 'clock'; let color = '#888';
+                    if(m.status === 'confirmed') { icon = 'video'; color = 'var(--accent-purple)'; }
+                    if(m.status === 'declined') { icon = 'xmark'; color = 'var(--accent-red)'; }
+                    const div = document.createElement('div');
+                    div.style = "background:var(--bg-body); padding:10px; border-radius:12px; margin-bottom:10px;";
+                    let actions = '';
+                    if(m.createdBy === 'employer' && m.status === 'pending') {
+                         actions = `<div style="display:flex; gap:10px; margin-top:5px;"><button class="btn-ghost" style="color:var(--accent-red); padding:4px;" onclick="window.respondMeeting('${m.id}', 'declined')">Decline</button><button class="btn-ghost" style="color:var(--accent-green); padding:4px;" onclick="window.respondMeeting('${m.id}', 'confirmed')">Confirm</button></div>`;
+                    } else { actions = `<div style="font-size:11px; color:${color}; font-weight:600; margin-top:5px;"><i class="fa-solid fa-${icon}"></i> ${m.status.toUpperCase()}</div>`; }
+                    div.innerHTML = `<div style="display:flex; justify-content:space-between;"><div style="font-weight:600; font-size:13px;">${m.topic}</div><div style="font-size:12px;">${m.date}</div></div><div style="font-size:12px; color:var(--text-secondary);">${m.time}</div>${actions}`;
+                    list.appendChild(div);
+                });
+            });
+        }
+        
+        window.toggleReachable = async () => {
+            await updateDoc(doc(db, "users", currentUser.uid), { isReachable: document.getElementById('reachable-toggle').checked });
+        };
+
+        window.changeMetric = (dir) => {
+            metricMode += dir; if(metricMode < 0) metricMode = 2; if(metricMode > 2) metricMode = 0;
+            document.getElementById('metric-label').innerText = metricLabels[metricMode]; calculateMetrics(); 
+        };
+
+        async function calculateMetrics() {
+            const q = query(collection(db, "shifts"), where("userId", "==", currentUser.uid), where("endTime", "!=", null));
+            const snaps = await getDocs(q);
+            let totalMs = 0; const now = new Date(); const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay())); startOfWeek.setHours(0,0,0,0);
+            snaps.forEach(doc => {
+                const d = doc.data(); const s = d.startTime.toDate(); const e = d.endTime.toDate(); const dur = e - s;
+                if (metricMode === 2) totalMs += dur;
+                else if (metricMode === 1) { if(s >= startOfWeek) totalMs += dur; }
+                else { const today = new Date(); today.setHours(0,0,0,0); if(s >= today) totalMs += dur; }
+            });
+            document.getElementById('metric-val').innerText = (totalMs / 36e5).toFixed(1);
+        }
+
+        window.openModal = (id) => {
+            if(id === 'modal-meet' && currentRole === 'employer' && !selectedEmployeeId) return alert("Select an employee first.");
+            document.getElementById(id).classList.remove('hidden');
+            if(id === 'modal-req') { document.getElementById('req-date').value = ""; document.getElementById('req-reason').value = ""; }
+            if(id === 'modal-meet') { document.getElementById('meet-topic').value = ""; }
+        };
+        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
+
+        function renderCalendar(id, interactive) {
+            const el = document.getElementById(id); el.innerHTML = '';
+            ['S','M','T','W','T','F','S'].forEach(d => el.innerHTML += `<div style="text-align:center; font-size:10px; color:#aaa;">${d}</div>`);
+            for(let i=1; i<=30; i++) {
+                const day = document.createElement('div'); day.className = 'cal-day'; day.innerText = i; day.id = interactive ? `emp-d-${i}` : `mgr-d-${i}`;
+                if(interactive) day.onclick = () => { selectedDateForModal = i; document.getElementById('avail-date-display').innerText = `Set hours for Day ${i}`; openModal('modal-avail'); }
+                el.appendChild(day);
+            }
+        }
+
+        window.confirmAvailability = async () => {
+            const start = document.getElementById('avail-start').value; const end = document.getElementById('avail-end').value;
+            if(!start || !end) return alert("Select times.");
+            const availRef = doc(db, "availability", currentUser.uid); const snap = await getDoc(availRef);
+            let currentData = snap.exists() ? snap.data().days || {} : {};
+            currentData[selectedDateForModal] = { start, end };
+            await setDoc(availRef, { days: currentData }, { merge: true });
+            closeModal('modal-avail'); loadAvailability(currentUser.uid, 'emp-cal', true); 
+        };
+
+        async function loadAvailability(uid, gridId, interactive) {
+            renderCalendar(gridId, interactive); 
+            const snap = await getDoc(doc(db, "availability", uid));
+            if(snap.exists() && snap.data().days) {
+                const days = snap.data().days; const prefix = interactive ? 'emp-d-' : 'mgr-d-';
+                Object.keys(days).forEach(d => { const el = document.getElementById(prefix + d); if(el) { el.classList.add('active'); el.title = `${days[d].start} - ${days[d].end}`; } });
+            }
+        }
+
+        window.submitRequest = async () => {
+            const date = document.getElementById('req-date').value; const reason = document.getElementById('req-reason').value;
+            if(!date || !reason) return alert("Required fields missing");
+            await addDoc(collection(db, "requests"), { userId: currentUser.uid, userName: currentUser.displayName, date, reason, status: 'pending', timestamp: serverTimestamp() });
+            const dayNum = parseInt(date.split('-')[2]).toString(); 
+            const availRef = doc(db, "availability", currentUser.uid);
+            const snap = await getDoc(availRef);
+            if(snap.exists() && snap.data().days && snap.data().days[dayNum]) {
+                 await updateDoc(availRef, { [`days.${dayNum}`]: deleteField() });
+                 loadAvailability(currentUser.uid, 'emp-cal', true);
+            }
+            closeModal('modal-req');
+        };
+
+        window.submitMeeting = async () => {
+            const date = document.getElementById('meet-date').value; const time = document.getElementById('meet-time').value; const topic = document.getElementById('meet-topic').value;
+            if(!date || !time || !topic) return alert("All fields required");
+            const targetId = currentRole === 'employer' ? selectedEmployeeId : currentUser.uid;
+            await addDoc(collection(db, "meetings"), { empId: targetId, date, time, topic, createdBy: currentRole, status: 'pending', timestamp: serverTimestamp() });
+            closeModal('modal-meet');
+        };
+
+        window.respondMeeting = async (id, status) => { await updateDoc(doc(db, "meetings", id), { status }); };
+
+        // --- EMPLOYER VIEW ---
+        async function initEmployerView() {
+            document.getElementById('nav-employer').classList.remove('hidden');
+            document.getElementById('dash-employer').classList.remove('hidden');
+            renderCalendar('mgr-cal', false); 
+            loadMyTeam();
+            
+            const reqQ = query(collection(db, "requests"), where("status", "==", "pending"));
+            onSnapshot(reqQ, (snaps) => {
+                const list = document.getElementById('mgr-req-list'); list.innerHTML = "";
+                if(snaps.empty) return list.innerHTML = "<div style='color:var(--text-secondary); font-size:13px;'>No pending requests.</div>";
+                snaps.forEach(d => {
+                    const req = d.data();
+                    const el = document.createElement('div');
+                    el.style = "display:flex; justify-content:space-between; align-items:center; background:var(--bg-body); padding:12px; border-radius:12px;";
+                    el.innerHTML = `<div style="font-size:13px;"><b>${req.userName}</b><br>${req.date} <span style="color:var(--text-secondary)">(${req.reason})</span></div><div style="display:flex; gap:8px;"><button class="btn-ghost" style="color:var(--accent-red); padding:4px;" onclick="window.handleReq('${d.id}', 'denied')"><i class="fa-solid fa-xmark"></i></button><button class="btn-ghost" style="color:var(--accent-green); padding:4px;" onclick="window.handleReq('${d.id}', 'approved')"><i class="fa-solid fa-check"></i></button></div>`;
+                    list.appendChild(el);
+                });
+            });
+        }
+        
+        window.handleReq = async (id, status) => { await updateDoc(doc(db, "requests", id), { status: status }); };
+
+        async function loadMyTeam() {
+            const userRef = doc(db, "users", currentUser.uid);
+            const userSnap = await getDoc(userRef);
+            const teamIds = userSnap.data().managedEmployees || [];
+            const list = document.getElementById('emp-list'); list.innerHTML = "";
+            if(teamIds.length === 0) return list.innerHTML = "<div style='padding:10px; color:var(--text-secondary); font-size:13px;'>No employees. Click Add.</div>";
+            
+            const lastSelected = localStorage.getItem('lastSelectedEmp');
+            
+            for(const uid of teamIds) {
+                const empSnap = await getDoc(doc(db, "users", uid));
+                if(empSnap.exists()) {
+                    const emp = empSnap.data();
+                    const d = document.createElement('div'); d.className = 'emp-chip'; d.id = `chip-${uid}`;
+                    d.onclick = () => selectEmp(empSnap.id, emp, d);
+                    d.innerHTML = `<img src="${emp.photo}" class="emp-av-small"><div style="font-size:13px; font-weight:500;">${emp.name}</div>`;
+                    list.appendChild(d);
+                    
+                    if(uid === lastSelected) selectEmp(uid, emp, d);
+                }
+            }
+        }
+
+        window.executeAddEmployee = async () => {
+            const code = document.getElementById('emp-code-input').value;
+            if(code.length !== 5) return alert("Invalid code.");
+            const q = query(collection(db, "users"), where("employeeCode", "==", code));
+            const snap = await getDocs(q);
+            if(snap.empty) return alert("Employee not found.");
+            await updateDoc(doc(db, "users", currentUser.uid), { managedEmployees: arrayUnion(snap.docs[0].id) });
+            closeModal('modal-add-emp'); alert("Employee Added!"); loadMyTeam();
+        };
+
+        window.selectEmp = async (uid, empData, element) => {
+            selectedEmployeeId = uid;
+            localStorage.setItem('lastSelectedEmp', uid);
+            document.querySelectorAll('.emp-chip').forEach(c => c.classList.remove('selected'));
+            if(element) element.classList.add('selected');
+            document.getElementById('mgr-name').innerText = empData.name;
+            document.getElementById('mgr-av').src = empData.photo;
+            const ind = document.getElementById('mgr-status-indicator');
+            ind.innerText = empData.isReachable ? "🟢 Reachable" : "🔴 Unreachable";
+            ind.style.color = empData.isReachable ? "var(--accent-green)" : "var(--accent-red)";
+            const noteSnap = await getDoc(doc(db, "notes", uid));
+            document.getElementById('mgr-note-in').value = noteSnap.exists() ? noteSnap.data().text : "";
+            loadAvailability(uid, 'mgr-cal', false);
+
+            const meetQ = query(collection(db, "meetings"), where("empId", "==", uid));
+            onSnapshot(meetQ, (snapshot) => {
+                const list = document.getElementById('mgr-meet-list'); list.innerHTML = "";
+                if(snapshot.empty) return list.innerHTML = "<div style='color:var(--text-secondary); font-size:13px;'>No meetings.</div>";
+                const meets = []; snapshot.forEach(d => meets.push({id:d.id, ...d.data()}));
+                meets.sort((a,b) => new Date(a.date) - new Date(b.date));
+                meets.forEach(m => {
+                    let actions = '';
+                    if(m.createdBy === 'employee' && m.status === 'pending') {
+                         actions = `<div style="display:flex; gap:10px; margin-top:5px;"><button class="btn-ghost" style="color:var(--accent-red); padding:4px;" onclick="window.respondMeeting('${m.id}', 'declined')">Decline</button><button class="btn-ghost" style="color:var(--accent-green); padding:4px;" onclick="window.respondMeeting('${m.id}', 'confirmed')">Accept</button></div>`;
+                    } else { actions = `<div style="font-size:11px; color:#888; font-weight:600; margin-top:5px;">${m.status.toUpperCase()}</div>`; }
+                    const div = document.createElement('div');
+                    div.style = "background:var(--bg-body); padding:10px; border-radius:12px; margin-bottom:10px;";
+                    div.innerHTML = `<div style="display:flex; justify-content:space-between;"><div style="font-weight:600; font-size:13px;">${m.topic}</div><div style="font-size:12px;">${m.date}</div></div><div style="font-size:12px; color:var(--text-secondary);">${m.time}</div>${actions}`;
+                    list.appendChild(div);
+                });
+            });
+        };
+
+        window.saveNote = async () => {
+            if(!selectedEmployeeId) return;
+            await setDoc(doc(db, "notes", selectedEmployeeId), { text: document.getElementById('mgr-note-in').value }, { merge: true });
+            document.getElementById('save-status').innerText = "Saved"; setTimeout(() => document.getElementById('save-status').innerText = "", 2000);
+        };
+
+        // NEW PAGES LOGIC
+        async function loadStaffDirectory() {
+            const tbody = document.getElementById('staff-table-body');
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">Loading...</td></tr>';
+            const userRef = doc(db, "users", currentUser.uid); const userSnap = await getDoc(userRef); const teamIds = userSnap.data().managedEmployees || [];
+            if(teamIds.length === 0) return tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">No employees found.</td></tr>';
+            tbody.innerHTML = "";
+            for(const uid of teamIds) {
+                const empSnap = await getDoc(doc(db, "users", uid));
+                if(empSnap.exists()) {
+                    const e = empSnap.data();
+                    const status = e.isReachable ? '<span style="color:var(--accent-green)">Reachable</span>' : '<span style="color:var(--accent-red)">Unreachable</span>';
+                    tbody.innerHTML += `<tr><td><div style="display:flex; align-items:center; gap:10px;"><img src="${e.photo}" style="width:30px; height:30px; border-radius:50%;"><span style="font-weight:500;">${e.name}</span></div></td><td style="font-family:monospace; color:var(--text-secondary);">${e.employeeCode}</td><td>${status}</td><td style="color:var(--text-secondary);">${e.email}</td></tr>`;
+                }
+            }
+        }
+
+        async function loadAllRequestsPage() {
+            const list = document.getElementById('all-requests-list'); list.innerHTML = "Loading...";
+            const userRef = doc(db, "users", currentUser.uid); const userSnap = await getDoc(userRef); const teamIds = userSnap.data().managedEmployees || [];
+            if(teamIds.length === 0) return list.innerHTML = "No employees managed.";
+            list.innerHTML = "";
+            for(const uid of teamIds) {
+                const q = query(collection(db, "requests"), where("userId", "==", uid)); const snaps = await getDocs(q);
+                snaps.forEach(docSnap => {
+                    const req = docSnap.data(); let color = '#888';
+                    if(req.status === 'approved') color = 'var(--accent-green)'; if(req.status === 'denied') color = 'var(--accent-red)'; if(req.status === 'pending') color = 'var(--accent-orange)';
+                    const div = document.createElement('div'); div.className = "list-item";
+                    div.innerHTML = `<div><div style="font-weight:600; font-size:14px;">${req.userName}</div><div style="font-size:12px; color:#666;">${req.date} • ${req.reason}</div></div><div style="font-size:12px; font-weight:600; color:${color}; text-transform:uppercase;">${req.status}</div>`;
+                    list.appendChild(div);
+                });
+            }
+            if(list.innerHTML === "") list.innerHTML = "No request history found.";
+        }
+
+        // SHARED/UTIL
+        async function checkActiveShift() {
+            const q = query(collection(db, "shifts"), where("userId", "==", currentUser.uid), where("endTime", "==", null), limit(1));
+            onSnapshot(q, (snapshot) => {
+                if(!snapshot.empty) { activeShiftId = snapshot.docs[0].id; startClockUI(snapshot.docs[0].data().startTime.toDate()); } else { activeShiftId = null; stopClockUI(); }
+            });
+        }
+        window.toggleClock = async () => { if (!activeShiftId) await addDoc(collection(db, "shifts"), { userId: currentUser.uid, startTime: serverTimestamp(), endTime: null }); else await updateDoc(doc(db, "shifts", activeShiftId), { endTime: serverTimestamp() }); };
+        function startClockUI(start) { document.getElementById('clock-ring').classList.add('active'); document.getElementById('clock-ico').className = "fa-solid fa-stop"; document.getElementById('clock-ico').style.color = "var(--accent-red)"; document.getElementById('clock-lbl').innerText = "On Shift"; document.getElementById('clock-lbl').style.color = "var(--accent-green)"; if(clockTimer) clearInterval(clockTimer); clockTimer = setInterval(() => { const diff = Math.floor((new Date() - start)/1000); const h = String(Math.floor(diff/3600)).padStart(2,'0'); const m = String(Math.floor((diff%3600)/60)).padStart(2,'0'); const s = String(diff%60).padStart(2,'0'); document.getElementById('clock-time').innerText = `${h}:${m}:${s}`; }, 1000); }
+        function stopClockUI() { if(clockTimer) clearInterval(clockTimer); document.getElementById('clock-ring').classList.remove('active'); document.getElementById('clock-ico').className = "fa-solid fa-fingerprint"; document.getElementById('clock-ico').style.color = "var(--text-tertiary)"; document.getElementById('clock-lbl').innerText = "Clocked Out"; document.getElementById('clock-lbl').style.color = "var(--text-secondary)"; document.getElementById('clock-time').innerText = "00:00:00"; }
+        async function loadSchedulePage() { 
+            const mount = document.getElementById('schedule-list-mount'); mount.innerHTML = "Loading...";
+            const snap = await getDoc(doc(db, "availability", currentUser.uid));
+            if(snap.exists() && snap.data().days) { mount.innerHTML = ""; const days = snap.data().days; Object.keys(days).sort((a,b)=>a-b).forEach(d => { mount.innerHTML += `<div class="list-item"><div><div style="font-weight:600;">Day ${d} of this month</div><div style="font-size:13px; color:var(--text-secondary);">Scheduled Shift</div></div><div style="font-weight:600; color:var(--accent-blue);">${days[d].start} - ${days[d].end}</div></div>`; }); } else { mount.innerHTML = "<div style='padding:20px; color:#999'>No availability set.</div>"; }
+        }
+        async function loadHistoryPage() {
+            const mount = document.getElementById('history-list-mount'); mount.innerHTML = "Loading...";
+            const q = query(collection(db, "shifts"), where("userId", "==", currentUser.uid), where("endTime", "!=", null), limit(10));
+            const snaps = await getDocs(q); mount.innerHTML = "";
+            snaps.forEach(doc => { const data = doc.data(); const start = data.startTime.toDate(); const end = data.endTime.toDate(); const dur = ((end - start) / (1000*60*60)).toFixed(2); mount.innerHTML += `<div class="list-item"><div><div style="font-weight:600;">${start.toLocaleDateString()}</div><div style="font-size:12px; color:#888;">${start.toLocaleTimeString()} - ${end.toLocaleTimeString()}</div></div><div style="font-weight:600;">${dur} hrs</div></div>`; });
+        }
+    </script>
+</body>
+</html>
