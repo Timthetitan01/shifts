@@ -175,6 +175,7 @@
         .settings-item { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid var(--bg-body); font-size: 15px; }
         .settings-item:last-child { border-bottom: none; }
 
+        /* Toggle Button Group */
         .toggle-group { background: var(--bg-body); padding: 4px; border-radius: 8px; display: inline-flex; }
         .toggle-btn { padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-secondary); transition: 0.2s; border: none; background: transparent; }
         .toggle-btn.active { background: var(--card-bg); color: var(--text-primary); box-shadow: var(--shadow-sm); }
@@ -328,46 +329,82 @@
             <div id="dash-employee" class="view-section hidden fade-in">
                 <h1 id="greet-emp">Good Morning</h1>
                 <p class="subtext">Here is your dashboard for the day.</p>
+
                 <div class="bento">
                     <div class="card col-1 row-2 clock-widget">
-                        <div id="clock-ring" class="clock-dial" onclick="toggleClock()"><i id="clock-ico" class="fa-solid fa-fingerprint"></i></div>
+                        <div id="clock-ring" class="clock-dial" onclick="toggleClock()">
+                            <i id="clock-ico" class="fa-solid fa-fingerprint"></i>
+                        </div>
                         <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 5px;" id="clock-lbl">Clocked Out</div>
                         <div style="font-size: 24px; font-weight: 500; font-variant-numeric: tabular-nums;" id="clock-time">00:00:00</div>
                         <div style="margin-top:20px; display:flex; flex-direction:column; align-items:center; gap:5px;">
-                            <label class="switch"><input type="checkbox" id="reachable-toggle" onchange="toggleReachable()"><span class="slider"></span></label>
+                            <label class="switch">
+                                <input type="checkbox" id="reachable-toggle" onchange="toggleReachable()">
+                                <span class="slider"></span>
+                            </label>
                             <span style="font-size:11px; color:var(--text-secondary);" id="reachable-label">Reachable</span>
                         </div>
                     </div>
+
                     <div class="card col-2 row-2">
-                        <div style="display:flex; justify-content:space-between; margin-bottom: 15px;"><h2>Availability</h2><div style="font-size:12px; color:var(--text-secondary);">Click dates to set times</div></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 15px;">
+                            <h2>Availability</h2>
+                            <div style="font-size:12px; color:var(--text-secondary);">Click dates to set times</div>
+                        </div>
                         <div class="cal-grid" id="emp-cal"></div>
                     </div>
+
                     <div class="card col-1">
-                        <div style="display:flex; justify-content:space-between; align-items:center;"><button class="btn-icon" onclick="changeMetric(-1)"><i class="fa-solid fa-chevron-left"></i></button><div id="metric-label" style="font-size:13px; font-weight:600;">THIS WEEK</div><button class="btn-icon" onclick="changeMetric(1)"><i class="fa-solid fa-chevron-right"></i></button></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <button class="btn-icon" onclick="changeMetric(-1)"><i class="fa-solid fa-chevron-left" style="font-size:12px"></i></button>
+                            <div id="metric-label" style="color:var(--text-secondary); font-size:13px; font-weight:600; text-transform:uppercase;">THIS WEEK</div>
+                            <button class="btn-icon" onclick="changeMetric(1)"><i class="fa-solid fa-chevron-right" style="font-size:12px"></i></button>
+                        </div>
                         <div style="font-size:42px; font-weight:700; margin-top: 5px; text-align:center;" id="metric-val">0.0</div>
+                        <div style="color:var(--text-tertiary); font-size:11px; text-align:center;">Hours worked</div>
                     </div>
+
                     <div class="card col-1">
                         <div style="color:var(--text-secondary); font-size:13px; font-weight:600; margin-bottom:10px;">MANAGER NOTES</div>
-                        <div id="emp-notes-text" style="font-size:14px; color:var(--text-primary);">No new notes.</div>
+                        <div id="emp-notes-text" style="font-size:14px; color:var(--text-primary); line-height:1.4;">No new notes.</div>
                     </div>
+
                     <div class="card col-2 row-2">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><h2>Time Off</h2><button class="btn-icon" onclick="openModal('modal-req')"><i class="fa-solid fa-plus"></i></button></div>
-                        <div id="emp-req-list" style="overflow-y:auto; height:180px; display:flex; flex-direction:column; gap:10px;"></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <h2>Time Off</h2>
+                            <button class="btn-icon" onclick="openModal('modal-req')"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div id="emp-req-list" style="overflow-y:auto; height:180px; display:flex; flex-direction:column; gap:10px;">
+                            <div style="color:var(--text-tertiary); font-size:13px; text-align:center; margin-top:40px;">No active requests</div>
+                        </div>
                     </div>
+
                     <div class="card col-2 row-2">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><h2>Meetings</h2><button class="btn-icon" onclick="openModal('modal-meet')"><i class="fa-solid fa-plus"></i></button></div>
-                        <div id="emp-meet-list" style="overflow-y:auto; height:180px; display:flex; flex-direction:column; gap:10px;"></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <h2>Meetings</h2>
+                            <button class="btn-icon" onclick="openModal('modal-meet')"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div id="emp-meet-list" style="overflow-y:auto; height:180px; display:flex; flex-direction:column; gap:10px;">
+                            <div style="color:var(--text-tertiary); font-size:13px; text-align:center; margin-top:40px;">No meetings scheduled</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div id="view-schedule" class="view-section hidden fade-in">
-                <h1>My Schedule</h1><p class="subtext">Upcoming availability.</p>
-                <div class="card"><div id="schedule-list-mount">Loading...</div></div>
+                <h1>My Schedule</h1>
+                <p class="subtext">Your upcoming availability and shifts.</p>
+                <div class="card">
+                    <div id="schedule-list-mount">Loading...</div>
+                </div>
             </div>
+
             <div id="view-history" class="view-section hidden fade-in">
-                <h1>Work History</h1><p class="subtext">Past shifts.</p>
-                <div class="card"><div id="history-list-mount">Loading...</div></div>
+                <h1>Work History</h1>
+                <p class="subtext">Past shifts and duration.</p>
+                <div class="card">
+                    <div id="history-list-mount">Loading...</div>
+                </div>
             </div>
             
             <div id="view-projects-employee" class="view-section hidden fade-in">
@@ -379,31 +416,94 @@
             </div>
 
             <div id="dash-employer" class="view-section hidden fade-in">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;"><h1>Team</h1><button class="btn btn-primary" onclick="openModal('modal-add-emp')"><i class="fa-solid fa-plus"></i> Add</button></div>
-                <div class="emp-scroll" id="emp-list"></div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h1>Team</h1>
+                    <button class="btn btn-primary" onclick="openModal('modal-add-emp')"><i class="fa-solid fa-plus"></i> Add</button>
+                </div>
+
+                <div class="emp-scroll" id="emp-list">
+                    <div style="padding:10px; color:var(--text-secondary); font-size:14px;">No employees added. Use the Add button.</div>
+                </div>
+
                 <hr style="border:0; border-top:1px solid rgba(0,0,0,0.05); margin: 30px 0;">
+
                 <div class="bento">
                     <div class="card col-2 row-2">
-                        <div style="display:flex; justify-content:space-between;"><div><h2 id="mgr-name">Select Employee</h2><div id="mgr-status-indicator"></div><div id="mgr-role">Select from list above</div></div><img class="emp-av-small" id="mgr-av" src="https://via.placeholder.com/48"></div>
-                        <div style="margin-top:30px;"><div style="font-size:12px; font-weight:700; margin-bottom:10px;">WRITE A NOTE</div><textarea id="mgr-note-in" rows="4" oninput="saveNote()"></textarea><div id="save-status" style="text-align:right; font-size:11px; color:var(--accent-green);"></div></div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <div>
+                                <h2 id="mgr-name" style="margin-bottom:4px;">Select Employee</h2>
+                                <div id="mgr-status-indicator" style="font-size:12px; font-weight:600; margin-bottom:4px;"></div>
+                                <div id="mgr-role" style="color:var(--text-secondary); font-size:14px;">Select from list above</div>
+                            </div>
+                            <img class="emp-av-small" style="width:48px; height:48px;" id="mgr-av" src="https://via.placeholder.com/48">
+                        </div>
+                        <div style="margin-top:30px;">
+                            <div style="font-size:12px; font-weight:700; color:var(--text-secondary); margin-bottom:10px;">WRITE A NOTE</div>
+                            <textarea id="mgr-note-in" rows="4" placeholder="Type a note for this employee..." oninput="saveNote()"></textarea>
+                            <div style="text-align:right; margin-top:5px; font-size:11px; color:var(--accent-green);" id="save-status"></div>
+                        </div>
                     </div>
+
                     <div class="card col-2 row-2">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><h2>Schedule</h2><div class="toggle-group"><button id="view-toggle-list" class="toggle-btn" onclick="toggleMgrCalView('list')">List</button><button id="view-toggle-cal" class="toggle-btn active" onclick="toggleMgrCalView('cal')">Calendar</button></div></div>
-                        <div id="mgr-cal-view-container"><div class="cal-grid" id="mgr-cal" style="opacity: 0.6; pointer-events: none;"></div></div>
-                        <div id="mgr-list-view-container" class="hidden" style="height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <h2>Schedule</h2>
+                            <div class="toggle-group">
+                                <button id="view-toggle-list" class="toggle-btn active" onclick="toggleMgrCalView('list')">List</button>
+                                <button id="view-toggle-cal" class="toggle-btn" onclick="toggleMgrCalView('cal')">Calendar</button>
+                            </div>
+                        </div>
+                        
+                        <div id="mgr-cal-view-container" class="hidden">
+                            <div class="cal-grid" id="mgr-cal" style="opacity: 0.6; pointer-events: none;"></div>
+                        </div>
+                        
+                        <div id="mgr-list-view-container" style="height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
+                            <div style="color:var(--text-secondary); font-size:13px; text-align:center; padding-top:20px;">Select an employee to see list.</div>
+                        </div>
                     </div>
-                    <div class="card col-2"><h2>Time Off Requests</h2><div id="mgr-req-list" style="display:flex; flex-direction:column; gap:10px;"></div></div>
-                    <div class="card col-2"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><h2>Meetings</h2><button class="btn-icon" onclick="openModal('modal-meet')"><i class="fa-solid fa-plus"></i></button></div><div id="mgr-meet-list" style="display:flex; flex-direction:column; gap:10px;"></div></div>
+
+                    <div class="card col-2">
+                        <h2>Time Off Requests</h2>
+                        <div id="mgr-req-list" style="display:flex; flex-direction:column; gap:10px;">
+                            <div style="color:var(--text-secondary); font-size:13px;">No pending requests.</div>
+                        </div>
+                    </div>
+
+                    <div class="card col-2">
+                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <h2>Meetings</h2>
+                            <button class="btn-icon" onclick="openModal('modal-meet')"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div id="mgr-meet-list" style="display:flex; flex-direction:column; gap:10px;">
+                             <div style="color:var(--text-secondary); font-size:13px;">Select an employee to schedule.</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div id="view-staff-directory" class="view-section hidden fade-in">
-                <h1>Staff Directory</h1><p class="subtext">Manage all your employees.</p>
-                <div class="card"><table class="staff-table"><thead><tr><th>Name</th><th>ID Code</th><th>Status</th><th>Email</th></tr></thead><tbody id="staff-table-body"></tbody></table></div>
+                <h1>Staff Directory</h1>
+                <p class="subtext">Manage all your employees.</p>
+                <div class="card">
+                    <table class="staff-table">
+                        <thead>
+                            <tr><th>Name</th><th>ID Code</th><th>Status</th><th>Email</th></tr>
+                        </thead>
+                        <tbody id="staff-table-body">
+                            <tr><td colspan="4" style="text-align:center; padding:20px;">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
             <div id="view-all-requests" class="view-section hidden fade-in">
-                <h1>All Requests</h1><p class="subtext">History of all time-off requests.</p>
-                <div class="card"><div id="all-requests-list" style="display:flex; flex-direction:column; gap:10px;"></div></div>
+                <h1>All Requests</h1>
+                <p class="subtext">History of all time-off requests.</p>
+                <div class="card">
+                    <div id="all-requests-list" style="display:flex; flex-direction:column; gap:10px;">
+                        <div style="color:#999;">Loading...</div>
+                    </div>
+                </div>
             </div>
             
             <div id="view-projects-employer" class="view-section hidden fade-in">
@@ -416,15 +516,33 @@
             </div>
 
             <div id="view-settings" class="view-section hidden fade-in">
-                <h1>Settings</h1><p class="subtext">Manage app preferences.</p>
+                <h1>Settings</h1>
+                <p class="subtext">Manage app preferences.</p>
                 <div class="card" style="max-width: 600px;">
                     <div class="settings-list">
-                        <div class="settings-item"><div><div style="font-weight:600;">Dark Mode</div><div style="font-size:12px;">Toggle dark theme</div></div><label class="switch"><input type="checkbox" id="theme-toggle" onchange="toggleTheme()"><span class="slider"></span></label></div>
-                        <div class="settings-item"><div><div style="font-weight:600;">Account Info</div><div style="font-size:12px;" id="settings-email"></div></div></div>
-                        <div class="settings-item" style="color:var(--accent-red); cursor:pointer;" onclick="logout()">Sign Out</div>
+                        <div class="settings-item">
+                            <div>
+                                <div style="font-weight:600;">Dark Mode</div>
+                                <div style="font-size:12px;">Toggle dark theme</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="settings-item">
+                            <div>
+                                <div style="font-weight:600;">Account Info</div>
+                                <div style="font-size:12px;" id="settings-email"></div>
+                            </div>
+                        </div>
+                        <div class="settings-item" style="color:var(--accent-red); cursor:pointer;" onclick="logout()">
+                            Sign Out
+                        </div>
                     </div>
                 </div>
             </div>
+
         </main>
     </div>
 
@@ -457,7 +575,7 @@
         let metricMode = 1; 
         const metricLabels = ["TODAY", "THIS WEEK", "ALL TIME"];
         let selectedDateForModal = null;
-        let mgrCalViewMode = 'cal';
+        let mgrCalViewMode = 'list'; // Default as requested
 
         // --- AUTH & SETUP ---
         window.signIn = () => signInWithPopup(auth, provider);
@@ -526,6 +644,7 @@
         window.switchView = (viewId, btn) => {
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
             document.getElementById(viewId).classList.remove('hidden');
+            
             document.querySelectorAll('aside .nav-item').forEach(el => el.classList.remove('active'));
             btn.classList.add('active');
 
@@ -748,6 +867,7 @@
                 Object.keys(days).forEach(d => { const el = document.getElementById(prefix + d); if(el) { el.classList.add('active'); el.title = `${days[d].start} - ${days[d].end}`; } });
             }
         }
+        
         async function loadAvailabilityList(uid) {
             const container = document.getElementById('mgr-list-view-container');
             container.innerHTML = '<div style="color:#999; text-align:center;">Loading...</div>';
@@ -765,6 +885,7 @@
                 });
             } else { container.innerHTML = '<div style="color:var(--text-secondary); font-size:13px;">No availability set.</div>'; }
         }
+
         window.submitRequest = async () => {
             const date = document.getElementById('req-date').value; const reason = document.getElementById('req-reason').value;
             if(!date || !reason) return alert("Required fields missing");
@@ -808,6 +929,7 @@
         }
         
         window.handleReq = async (id, status) => { await updateDoc(doc(db, "requests", id), { status: status }); };
+        
         window.toggleMgrCalView = (mode) => {
             mgrCalViewMode = mode;
             document.getElementById('view-toggle-cal').classList.remove('active'); document.getElementById('view-toggle-list').classList.remove('active');
@@ -863,6 +985,8 @@
             ind.style.color = empData.isReachable ? "var(--accent-green)" : "var(--accent-red)";
             const noteSnap = await getDoc(doc(db, "notes", uid));
             document.getElementById('mgr-note-in').value = noteSnap.exists() ? noteSnap.data().text : "";
+            
+            // Fixed: use the current view mode
             if(mgrCalViewMode === 'cal') loadAvailability(uid, 'mgr-cal', false); else loadAvailabilityList(uid);
 
             const meetQ = query(collection(db, "meetings"), where("empId", "==", uid));
