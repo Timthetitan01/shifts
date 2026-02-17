@@ -148,8 +148,8 @@
         .clock-dial.active i { color: var(--accent-green); }
 
         /* Calendar */
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top:10px; }
-        .cal-day { height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 13px; cursor: pointer; color: var(--text-primary); font-weight:500; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .cal-day { height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 13px; cursor: pointer; color: var(--text-primary); }
         .cal-day:hover { background: var(--bg-body); }
         .cal-day.active { background: var(--accent-blue); color: white; }
         .cal-day.today { border: 1px solid var(--accent-blue); color: var(--accent-blue); }
@@ -745,8 +745,11 @@
         let mgrCalViewMode = 'list';
         let contextMenuTargetId = null;
         
+        // Listeners for cleanup
         let statsUnsubShifts = null;
         let statsUnsubProjs = null;
+        let historyUnsub = null;
+        
         let baseMetricTotalMs = 0; 
         let employeeShiftsSnapshot = []; // Cache to re-filter locally
 
@@ -986,14 +989,6 @@
                     }
                 }
             });
-            
-            // Note: Unlike the employer view which is static, the employee view ticks.
-            // We store the "base" (completed + current progress so far) in the global variable
-            // But to avoid double counting in the UI loop, we actually just set it here.
-            // The StartClockUI loop handles the *active* session display.
-            
-            // To make it simple: baseMetricTotalMs will store TOTAL COMPLETED time.
-            // The active shift is added purely in the UI loop if active.
             
             // Let's refactor specifically for the ticking UI:
             let completedTotalMs = 0;
@@ -1342,13 +1337,16 @@
             closeModal('modal-avail'); loadAvailability(currentUser.uid, 'emp-cal', true);
         };
         async function loadAvailability(uid, gridId, interactive) {
-            if(!uid) return; // Guard clause
+            if(!uid) return;
             if(currentRole === 'employer' && mgrCalViewMode !== 'cal') return;
             renderCalendar(gridId, interactive); 
             const snap = await getDoc(doc(db, "availability", uid));
             if(snap.exists() && snap.data().days) {
-                const days = snap.data().days; const prefix = interactive ? 'emp-d-' : 'mgr-d-';
-                Object.keys(days).forEach(d => { const el = document.getElementById(prefix + d); if(el) { el.classList.add('active'); el.title = `${days[d].start} - ${days[d].end}`; } });
+                const days = snap.data().days;
+                Object.keys(days).forEach(d => {
+                    const el = document.getElementById((interactive ? 'emp-d-' : 'mgr-d-') + d);
+                    if(el) { el.classList.add('active'); el.title = `${days[d].start} - ${days[d].end}`; }
+                });
             }
         }
         
@@ -1588,11 +1586,65 @@
             const snap = await getDoc(doc(db, "availability", currentUser.uid));
             if(snap.exists() && snap.data().days) { mount.innerHTML = ""; const days = snap.data().days; Object.keys(days).sort((a,b)=>a-b).forEach(d => { mount.innerHTML += `<div class="list-item"><div><div style="font-weight:600;">Day ${d} of this month</div><div style="font-size:13px; color:var(--text-secondary);">Scheduled Shift</div></div><div style="font-weight:600; color:var(--accent-blue);">${days[d].start} - ${days[d].end}</div></div>`; }); } else { mount.innerHTML = "<div style='padding:20px; color:#999'>No availability set.</div>"; }
         }
-        async function loadHistoryPage() {
-            const mount = document.getElementById('history-list-mount'); mount.innerHTML = "Loading...";
-            const q = query(collection(db, "shifts"), where("userId", "==", currentUser.uid), where("endTime", "!=", null), limit(10));
-            const snaps = await getDocs(q); mount.innerHTML = "";
-            snaps.forEach(doc => { const data = doc.data(); const start = data.startTime.toDate(); const end = data.endTime.toDate(); const dur = ((end - start) / (1000*60*60)).toFixed(2); mount.innerHTML += `<div class="list-item"><div><div style="font-weight:600;">${start.toLocaleDateString()}</div><div style="font-size:12px; color:#888;">${start.toLocaleTimeString()} - ${end.toLocaleTimeString()}</div></div><div style="font-weight:600;">${dur} hrs</div></div>`; });
+        
+        // --- HISTORY TAB FIX ---
+        // Global variable to hold listener
+        let historyUnsub = null;
+
+        function loadHistoryPage() {
+            // Unsubscribe from previous listener if exists
+            if(historyUnsub) historyUnsub();
+
+            const mount = document.getElementById('history-list-mount');
+            mount.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">Loading history...</div>';
+
+            // Query ALL shifts for current user (avoid complex filters that need indexes)
+            const q = query(collection(db, "shifts"), where("userId", "==", currentUser.uid));
+
+            historyUnsub = onSnapshot(q, (snapshot) => {
+                const shifts = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    // Filter in JS: Must have endTime (completed)
+                    if(data.endTime && data.startTime) {
+                        shifts.push({ id: doc.id, ...data });
+                    }
+                });
+
+                // Sort: Newest first
+                shifts.sort((a, b) => b.startTime.toDate() - a.startTime.toDate());
+
+                mount.innerHTML = "";
+                if(shifts.length === 0) {
+                    mount.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">No shift history found.</div>';
+                    return;
+                }
+
+                shifts.forEach(s => {
+                    const start = s.startTime.toDate();
+                    const end = s.endTime.toDate();
+                    const durationMs = end - start;
+                    const hours = (durationMs / (1000 * 60 * 60)).toFixed(2);
+                    
+                    // Format nicely
+                    const dateStr = start.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                    const timeStr = `${start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+
+                    mount.innerHTML += `
+                        <div class="list-item">
+                            <div>
+                                <div style="font-weight:600; font-size:14px;">${dateStr}</div>
+                                <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">${timeStr}</div>
+                                <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">${s.task || 'General Shift'}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-weight:700; font-size:14px; color:var(--text-primary);">${hours} hrs</div>
+                                <div style="font-size:10px; color:var(--accent-green); font-weight:500;">COMPLETED</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
         }
     </script>
 </body>
