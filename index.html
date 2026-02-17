@@ -1193,9 +1193,14 @@
                     const d = doc.data();
                     count++; // Count every shift entry (active or closed)
                     
-                    // Only add time if the shift is finished
-                    if(d.startTime && d.endTime) {
-                        ms += (d.endTime.toDate() - d.startTime.toDate());
+                    if (d.startTime) {
+                        const start = d.startTime.toDate();
+                        if (d.endTime) {
+                            ms += (d.endTime.toDate() - start);
+                        } else {
+                            // Active shift! Calculate time until now.
+                            ms += (new Date() - start);
+                        }
                     }
                 });
                 
@@ -1204,15 +1209,20 @@
             });
 
             // 2. Projects Listener
-            // Query all projects assigned to user, filter 'progress == 100' in JS.
-            const qProjs = query(collection(db, "projects"), where("assignedTo", "array-contains", uid));
+            // Query all projects created by me (the manager) to ensure permission, then filter in memory
+            const qProjs = query(collection(db, "projects"), where("createdBy", "==", currentUser.uid));
             
             statsUnsubProjs = onSnapshot(qProjs, (projSnaps) => {
                 let completedCount = 0;
                 projSnaps.forEach(doc => {
                     const p = doc.data();
-                    // Robust check: ensure it is number 100 or string "100"
-                    if(parseInt(p.progress || 0) === 100) completedCount++;
+                    const assignedList = p.assignedTo || [];
+                    const prog = parseInt(p.progress || 0);
+                    
+                    // Check if selected employee is assigned AND progress is 100
+                    if (assignedList.includes(uid) && prog === 100) {
+                        completedCount++;
+                    }
                 });
                 document.getElementById('stat-completed-projs').innerText = completedCount;
             });
