@@ -1587,9 +1587,10 @@
             if(snap.exists() && snap.data().days) { mount.innerHTML = ""; const days = snap.data().days; Object.keys(days).sort((a,b)=>a-b).forEach(d => { mount.innerHTML += `<div class="list-item"><div><div style="font-weight:600;">Day ${d} of this month</div><div style="font-size:13px; color:var(--text-secondary);">Scheduled Shift</div></div><div style="font-weight:600; color:var(--accent-blue);">${days[d].start} - ${days[d].end}</div></div>`; }); } else { mount.innerHTML = "<div style='padding:20px; color:#999'>No availability set.</div>"; }
         }
         
-        // --- HISTORY TAB FIX ---
-        // Global variable to hold listener
-        let historyUnsub = null;
+
+// --- HISTORY TAB FIX ---
+        // Global variable historyUnsub is already declared at the top of the file.
+        // We do not redeclare it here with 'let'.
 
         function loadHistoryPage() {
             // Unsubscribe from previous listener if exists
