@@ -744,9 +744,9 @@
         let mgrCalViewMode = 'list';
         let contextMenuTargetId = null;
         
-        // Stats Listeners
         let statsUnsubShifts = null;
         let statsUnsubProjs = null;
+        let baseMetricTotalMs = 0; // NEW: Holds sum of closed shifts
 
         // --- AUTH & SETUP ---
         window.signIn = () => signInWithPopup(auth, provider);
@@ -927,14 +927,31 @@
         
         window.toggleReachable = async () => { await updateDoc(doc(db, "users", currentUser.uid), { isReachable: document.getElementById('reachable-toggle').checked }); };
         window.changeMetric = (dir) => { metricMode += dir; if(metricMode < 0) metricMode = 2; if(metricMode > 2) metricMode = 0; document.getElementById('metric-label').innerText = metricLabels[metricMode]; calculateMetrics(); };
+        
+        // --- LIVE METRICS CALCULATION ---
         async function calculateMetrics() {
             const q = query(collection(db, "shifts"), where("userId", "==", currentUser.uid), where("endTime", "!=", null));
             const snaps = await getDocs(q);
-            let totalMs = 0; const now = new Date(); const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay())); startOfWeek.setHours(0,0,0,0);
+            let totalMs = 0; 
+            
+            const now = new Date(); 
+            const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay())); startOfWeek.setHours(0,0,0,0);
+            const today = new Date(); today.setHours(0,0,0,0);
+
             snaps.forEach(doc => {
-                const d = doc.data(); const s = d.startTime.toDate(); const e = d.endTime.toDate(); const dur = e - s;
-                if (metricMode === 2) totalMs += dur; else if (metricMode === 1) { if(s >= startOfWeek) totalMs += dur; } else { const today = new Date(); today.setHours(0,0,0,0); if(s >= today) totalMs += dur; }
+                const d = doc.data(); 
+                const s = d.startTime.toDate(); 
+                const e = d.endTime.toDate(); 
+                const dur = e - s;
+                
+                if (metricMode === 2) totalMs += dur; 
+                else if (metricMode === 1) { if(s >= startOfWeek) totalMs += dur; } 
+                else { if(s >= today) totalMs += dur; }
             });
+            
+            baseMetricTotalMs = totalMs; // Store base historical hours
+            
+            // Initial render without active session
             document.getElementById('metric-val').innerText = (totalMs / 36e5).toFixed(1);
         }
 
@@ -1187,20 +1204,15 @@
             });
 
             // 2. Projects Listener
-            // Query all projects created by me (the manager) to ensure permission, then filter in memory
-            const qProjs = query(collection(db, "projects"), where("createdBy", "==", currentUser.uid));
+            // Query all projects assigned to user, filter 'progress == 100' in JS.
+            const qProjs = query(collection(db, "projects"), where("assignedTo", "array-contains", uid));
             
             statsUnsubProjs = onSnapshot(qProjs, (projSnaps) => {
                 let completedCount = 0;
                 projSnaps.forEach(doc => {
                     const p = doc.data();
-                    const assignedList = p.assignedTo || [];
-                    const prog = parseInt(p.progress || 0);
-                    
-                    // Check if selected employee is assigned AND progress is 100
-                    if (assignedList.includes(uid) && prog === 100) {
-                        completedCount++;
-                    }
+                    // Robust check: ensure it is number 100 or string "100"
+                    if(parseInt(p.progress || 0) === 100) completedCount++;
                 });
                 document.getElementById('stat-completed-projs').innerText = completedCount;
             });
@@ -1452,7 +1464,19 @@
             }
         }
 
-        function startClockUI(start) { document.getElementById('clock-ring').classList.add('active'); document.getElementById('clock-ico').className = "fa-solid fa-stop"; document.getElementById('clock-ico').style.color = "var(--accent-red)"; document.getElementById('clock-lbl').innerText = "On Shift"; document.getElementById('clock-lbl').style.color = "var(--accent-green)"; if(clockTimer) clearInterval(clockTimer); clockTimer = setInterval(() => { const diff = Math.floor((new Date() - start)/1000); const h = String(Math.floor(diff/3600)).padStart(2,'0'); const m = String(Math.floor((diff%3600)/60)).padStart(2,'0'); const s = String(diff%60).padStart(2,'0'); document.getElementById('clock-time').innerText = `${h}:${m}:${s}`; }, 1000); }
+        function startClockUI(start) { document.getElementById('clock-ring').classList.add('active'); document.getElementById('clock-ico').className = "fa-solid fa-stop"; document.getElementById('clock-ico').style.color = "var(--accent-red)"; document.getElementById('clock-lbl').innerText = "On Shift"; document.getElementById('clock-lbl').style.color = "var(--accent-green)"; if(clockTimer) clearInterval(clockTimer); clockTimer = setInterval(() => { 
+            const now = new Date();
+            const diff = Math.floor((now - start)/1000); 
+            const h = String(Math.floor(diff/3600)).padStart(2,'0'); 
+            const m = String(Math.floor((diff%3600)/60)).padStart(2,'0'); 
+            const s = String(diff%60).padStart(2,'0'); 
+            document.getElementById('clock-time').innerText = `${h}:${m}:${s}`; 
+            
+            // --- LIVE UPDATE FOR HOURS WORKED ---
+            const currentSessionMs = now - start;
+            document.getElementById('metric-val').innerText = ((baseMetricTotalMs + currentSessionMs) / 36e5).toFixed(1);
+        }, 1000); }
+        
         function stopClockUI() { if(clockTimer) clearInterval(clockTimer); document.getElementById('clock-ring').classList.remove('active'); document.getElementById('clock-ico').className = "fa-solid fa-fingerprint"; document.getElementById('clock-ico').style.color = "var(--text-tertiary)"; document.getElementById('clock-lbl').innerText = "Clocked Out"; document.getElementById('clock-lbl').style.color = "var(--text-secondary)"; document.getElementById('clock-time').innerText = "00:00:00"; }
         
         async function loadSchedulePage() { 
