@@ -56,7 +56,7 @@
             transition: background-color 0.3s, color 0.3s;
         }
 
-        /* --- Layout Containers (The Fix for Blank Screen) --- */
+        /* --- Layout Containers --- */
         #app {
             display: flex; /* Critical for Desktop Side-by-Side */
             width: 100%;
@@ -73,7 +73,7 @@
             border-right: 1px solid rgba(120,120,120,0.1); 
             display: flex; 
             flex-direction: column; 
-            flex-shrink: 0; /* Prevents sidebar from collapsing */
+            flex-shrink: 0;
             transition: background-color 0.3s;
         }
 
@@ -199,11 +199,12 @@
 
         .settings-list { margin-top: 20px; }
         .settings-item { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid var(--bg-body); font-size: 15px; }
+        .settings-item:last-child { border-bottom: none; }
         .toggle-group { background: var(--bg-body); padding: 4px; border-radius: 8px; display: inline-flex; }
         .toggle-btn { padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-secondary); transition: 0.2s; border: none; background: transparent; }
         .toggle-btn.active { background: var(--card-bg); color: var(--text-primary); box-shadow: var(--shadow-sm); }
 
-        /* --- MOBILE NAV (New) --- */
+        /* --- MOBILE NAV --- */
         .mobile-nav {
             display: none;
             position: fixed;
@@ -335,6 +336,10 @@
             <h3 style="margin-bottom: 20px;">Create Project</h3>
             <label style="font-size:12px; font-weight:600;">PROJECT NAME</label>
             <input type="text" id="proj-name" placeholder="New Website">
+            
+            <label style="font-size:12px; font-weight:600;">SITE LINK (Optional)</label>
+            <input type="text" id="proj-link" placeholder="https://example.com">
+
             <label style="font-size:12px; font-weight:600;">DESCRIPTION</label>
             <textarea id="proj-desc" rows="2" placeholder="Brief details..."></textarea>
             <label style="font-size:12px; font-weight:600;">NOTES</label>
@@ -853,6 +858,7 @@
             container.innerHTML = 'Loading...';
             document.getElementById('modal-project').classList.remove('hidden');
             document.getElementById('proj-name').value = "";
+            document.getElementById('proj-link').value = "";
             document.getElementById('proj-desc').value = "";
             document.getElementById('proj-notes').value = "";
 
@@ -879,6 +885,7 @@
 
         window.submitProject = async () => {
             const name = document.getElementById('proj-name').value;
+            const link = document.getElementById('proj-link').value;
             const desc = document.getElementById('proj-desc').value;
             const notes = document.getElementById('proj-notes').value;
             if(!name) return alert("Project Name required");
@@ -887,7 +894,7 @@
             document.querySelectorAll('#proj-assign-list input:checked').forEach(cb => assignedTo.push(cb.value));
 
             await addDoc(collection(db, "projects"), {
-                name, description: desc, notes,
+                name, description: desc, notes, link,
                 createdBy: currentUser.uid,
                 assignedTo: assignedTo,
                 progress: 0,
@@ -921,6 +928,7 @@
                     <div class="card project-card-grid">
                         <div>
                             <div style="font-size: 28px; font-weight: 700; margin-bottom: 5px; letter-spacing:-0.5px;">${p.name}</div>
+                            ${p.link ? `<a href="${p.link}" target="_blank" style="font-size:13px; color:var(--accent-blue); display:inline-flex; align-items:center; gap:5px; margin-bottom:10px; text-decoration:none;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Visit Site</a>` : ''}
                             <div style="font-size: 15px; color: var(--text-secondary); margin-bottom: 10px;">${p.description}</div>
                             <div class="proj-notes-box">
                                 <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-tertiary); margin-bottom:10px;">Project Notes</div>
@@ -973,6 +981,7 @@
                     <div class="card project-card-grid">
                         <div>
                             <div style="font-size: 24px; font-weight: 700; color:var(--accent-blue); margin-bottom:5px;">${p.name}</div>
+                            ${p.link ? `<a href="${p.link}" target="_blank" style="font-size:13px; color:var(--text-primary); display:inline-flex; align-items:center; gap:5px; margin-bottom:10px; text-decoration:none; opacity:0.8;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Visit Site</a>` : ''}
                             <div style="font-size: 14px; margin-bottom: 10px;">${p.description}</div>
                             <div class="proj-notes-box">
                                 <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-tertiary); margin-bottom:10px;">Manager Notes</div>
