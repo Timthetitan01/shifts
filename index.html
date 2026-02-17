@@ -148,8 +148,8 @@
         .clock-dial.active i { color: var(--accent-green); }
 
         /* Calendar */
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-        .cal-day { height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 13px; cursor: pointer; color: var(--text-primary); }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top:10px; }
+        .cal-day { height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 13px; cursor: pointer; color: var(--text-primary); font-weight:500; }
         .cal-day:hover { background: var(--bg-body); }
         .cal-day.active { background: var(--accent-blue); color: white; }
         .cal-day.today { border: 1px solid var(--accent-blue); color: var(--accent-blue); }
@@ -822,6 +822,9 @@
                  checkActiveShift();
                  initEmployeeMetrics(); // Replaced direct call with listener init
                  
+                 // FIX: Ensure calendar renders on launch
+                 loadAvailability(currentUser.uid, 'emp-cal', true);
+
                  getDoc(doc(db, "users", currentUser.uid)).then(snap => {
                      if(snap.exists()) document.getElementById('reachable-toggle').checked = snap.data().isReachable;
                  });
@@ -832,7 +835,10 @@
             } else {
                  document.getElementById('nav-employer').classList.remove('hidden');
                  document.getElementById('mob-nav-employer').classList.remove('hidden');
+                 
+                 // FIX: Render calendar immediately (empty grid) to prevent blank space
                  renderCalendar('mgr-cal', false); 
+                 
                  loadMyTeam();
                  setupEmployerListeners();
             }
@@ -1336,6 +1342,7 @@
             closeModal('modal-avail'); loadAvailability(currentUser.uid, 'emp-cal', true);
         };
         async function loadAvailability(uid, gridId, interactive) {
+            if(!uid) return; // Guard clause
             if(currentRole === 'employer' && mgrCalViewMode !== 'cal') return;
             renderCalendar(gridId, interactive); 
             const snap = await getDoc(doc(db, "availability", uid));
