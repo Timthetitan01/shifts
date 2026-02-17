@@ -245,46 +245,6 @@
 </head>
 <body>
 
-    <div id="modal-clock-in" class="modal-overlay hidden">
-        <div class="modal-card">
-            <h3>Start Shift</h3>
-            <p style="font-size:13px; color:var(--text-secondary); margin-bottom:20px;">What are you working on?</p>
-            
-            <label style="font-size:12px; font-weight:600;">PROJECT</label>
-            <select id="clock-in-project-select">
-                <option value="none">General / No Project</option>
-            </select>
-            
-            <label style="font-size:12px; font-weight:600;">TASK DESCRIPTION</label>
-            <input type="text" id="clock-in-desc" placeholder="e.g. Designing Homepage">
-            
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button class="btn btn-primary" style="flex:1" onclick="confirmClockIn()">Clock In</button>
-                <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-clock-in')">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="modal-clock-out" class="modal-overlay hidden">
-        <div class="modal-card">
-            <h3>End Shift</h3>
-            <div id="clock-out-proj-container">
-                <p style="font-size:13px; color:var(--text-secondary); margin-bottom:15px;">Update progress for: <b id="clock-out-proj-name">Project</b></p>
-                
-                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                    <label style="font-size:12px; font-weight:600;">COMPLETION</label>
-                    <span id="clock-out-percent-val" style="font-size:12px; font-weight:600; color:var(--accent-blue);">0%</span>
-                </div>
-                <input type="range" id="clock-out-slider" min="0" max="100" value="0" oninput="document.getElementById('clock-out-percent-val').innerText = this.value + '%'">
-            </div>
-            
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="btn btn-primary" style="flex:1" onclick="confirmClockOut()">Clock Out</button>
-                <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-clock-out')">Cancel</button>
-            </div>
-        </div>
-    </div>
-
     <div id="modal-avail" class="modal-overlay hidden">
         <div class="modal-card">
             <h3 style="margin-bottom: 20px;">Set Availability</h3>
@@ -1254,71 +1214,21 @@
             });
         }
 
-        // --- NEW CLOCK LOGIC ---
+        // --- NEW CLOCK LOGIC (SIMPLIFIED) ---
         window.initiateClockToggle = async () => {
             if(!activeShiftId) {
-                // CLOCKING IN
-                document.getElementById('modal-clock-in').classList.remove('hidden');
-                const sel = document.getElementById('clock-in-project-select');
-                sel.innerHTML = '<option value="none">General / No Project</option>';
-                const q = query(collection(db, "projects"), where("assignedTo", "array-contains", currentUser.uid));
-                const snaps = await getDocs(q);
-                snaps.forEach(doc => {
-                    const p = doc.data();
-                    const opt = document.createElement('option');
-                    opt.value = doc.id;
-                    opt.innerText = p.name;
-                    sel.appendChild(opt);
+                // IMMEDIATE CLOCK IN
+                await addDoc(collection(db, "shifts"), { 
+                    userId: currentUser.uid, 
+                    startTime: serverTimestamp(), 
+                    endTime: null,
+                    projectId: 'none',
+                    task: 'General Shift' 
                 });
-                document.getElementById('clock-in-desc').value = "";
             } else {
-                // CLOCKING OUT
-                if(activeShiftProject && activeShiftProject !== 'none') {
-                    // Fetch current progress to set slider default
-                    const pSnap = await getDoc(doc(db, "projects", activeShiftProject));
-                    if(pSnap.exists()) {
-                        document.getElementById('clock-out-proj-name').innerText = pSnap.data().name;
-                        document.getElementById('clock-out-slider').value = pSnap.data().progress || 0;
-                        document.getElementById('clock-out-percent-val').innerText = (pSnap.data().progress || 0) + '%';
-                        document.getElementById('clock-out-proj-container').style.display = 'block';
-                    } else {
-                         document.getElementById('clock-out-proj-container').style.display = 'none';
-                    }
-                } else {
-                    document.getElementById('clock-out-proj-container').style.display = 'none';
-                }
-                document.getElementById('modal-clock-out').classList.remove('hidden');
+                // IMMEDIATE CLOCK OUT
+                await updateDoc(doc(db, "shifts", activeShiftId), { endTime: serverTimestamp() });
             }
-        }
-
-        window.confirmClockIn = async () => {
-            const projId = document.getElementById('clock-in-project-select').value;
-            const desc = document.getElementById('clock-in-desc').value;
-            await addDoc(collection(db, "shifts"), { 
-                userId: currentUser.uid, 
-                startTime: serverTimestamp(), 
-                endTime: null,
-                projectId: projId,
-                task: desc 
-            });
-            closeModal('modal-clock-in');
-        };
-
-        window.confirmClockOut = async () => {
-            // 1. Update Shift
-            await updateDoc(doc(db, "shifts", activeShiftId), { endTime: serverTimestamp() });
-            
-            // 2. Update Project if applicable
-            if(activeShiftProject && activeShiftProject !== 'none') {
-                const progressVal = document.getElementById('clock-out-slider').value;
-                await updateDoc(doc(db, "projects", activeShiftProject), {
-                    progress: parseInt(progressVal),
-                    lastUpdate: serverTimestamp(),
-                    lastWorkedBy: currentUser.displayName,
-                    lastTask: "Shift Ended"
-                });
-            }
-            closeModal('modal-clock-out');
         }
 
         function startClockUI(start) { document.getElementById('clock-ring').classList.add('active'); document.getElementById('clock-ico').className = "fa-solid fa-stop"; document.getElementById('clock-ico').style.color = "var(--accent-red)"; document.getElementById('clock-lbl').innerText = "On Shift"; document.getElementById('clock-lbl').style.color = "var(--accent-green)"; if(clockTimer) clearInterval(clockTimer); clockTimer = setInterval(() => { const diff = Math.floor((new Date() - start)/1000); const h = String(Math.floor(diff/3600)).padStart(2,'0'); const m = String(Math.floor((diff%3600)/60)).padStart(2,'0'); const s = String(diff%60).padStart(2,'0'); document.getElementById('clock-time').innerText = `${h}:${m}:${s}`; }, 1000); }
