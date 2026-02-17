@@ -747,11 +747,12 @@
         
         let statsUnsubShifts = null;
         let statsUnsubProjs = null;
-        let baseMetricTotalMs = 0; // NEW: Holds sum of closed shifts
+        let baseMetricTotalMs = 0; 
+        let employeeShiftsSnapshot = []; // Cache to re-filter locally
 
         // --- AUTH & SETUP ---
         window.signIn = () => signInWithPopup(auth, provider);
-        window.logout = () => signOut(auth).then(() => window.location.reload());
+        window.logout = () => signOut(auth).then(() => { localStorage.removeItem('lastView'); window.location.reload(); });
 
         window.toggleTheme = () => {
             document.body.classList.toggle('dark-mode');
@@ -815,13 +816,11 @@
             document.getElementById('auth-overlay').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
             
-            // Show appropriate Nav based on Role
             if(role === 'employee') {
                  document.getElementById('nav-employee').classList.remove('hidden');
                  document.getElementById('mob-nav-employee').classList.remove('hidden');
                  checkActiveShift();
-                 loadAvailability(currentUser.uid, 'emp-cal', true);
-                 calculateMetrics();
+                 initEmployeeMetrics(); // Replaced direct call with listener init
                  
                  getDoc(doc(db, "users", currentUser.uid)).then(snap => {
                      if(snap.exists()) document.getElementById('reachable-toggle').checked = snap.data().isReachable;
@@ -838,13 +837,17 @@
                  setupEmployerListeners();
             }
 
-            // RESTORE LAST TAB
+            // Restore last view
             let lastView = localStorage.getItem('lastView');
             if(!lastView || !document.getElementById(lastView)) {
-                // Default if no history
                 lastView = role === 'employee' ? 'dash-employee' : 'dash-employer';
             }
-            switchView(lastView);
+            // If it was analytics, we need to ensure the dropdown populates before selecting
+            if(lastView === 'view-employee-stats') {
+                loadEmployeeStatsSelector().then(() => switchView(lastView));
+            } else {
+                switchView(lastView);
+            }
         }
 
         window.switchView = (viewId, btn) => {
@@ -854,6 +857,7 @@
             document.getElementById(viewId).classList.remove('hidden');
             
             document.querySelectorAll('.nav-item, .mob-nav-item').forEach(el => el.classList.remove('active'));
+            // Find both desktop and mobile buttons for this view and highlight them
             const matchingNavs = document.querySelectorAll(`[data-view="${viewId}"]`);
             matchingNavs.forEach(el => el.classList.add('active'));
 
@@ -874,40 +878,24 @@
             
             let x = e.clientX;
             let y = e.clientY;
-            
             if (x + 160 > window.innerWidth) x = window.innerWidth - 170;
-            
             menu.style.left = `${x}px`;
             menu.style.top = `${y}px`;
             menu.classList.remove('hidden');
         };
 
-        window.hideContextMenu = () => {
-            document.getElementById('context-menu').classList.add('hidden');
-        };
-
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('#context-menu')) {
-                hideContextMenu();
-            }
-        });
+        window.hideContextMenu = () => { document.getElementById('context-menu').classList.add('hidden'); };
+        document.addEventListener('click', (e) => { if (!e.target.closest('#context-menu')) hideContextMenu(); });
 
         window.executeRemoveEmployee = async () => {
             if(!contextMenuTargetId) return;
             if(!confirm("Are you sure you want to remove this employee from your team?")) return;
-
-            await updateDoc(doc(db, "users", currentUser.uid), {
-                managedEmployees: arrayRemove(contextMenuTargetId)
-            });
-
-            hideContextMenu();
-            alert("Employee removed.");
-            
+            await updateDoc(doc(db, "users", currentUser.uid), { managedEmployees: arrayRemove(contextMenuTargetId) });
+            hideContextMenu(); alert("Employee removed.");
             if(!document.getElementById('dash-employer').classList.contains('hidden')) loadMyTeam();
             if(!document.getElementById('view-staff-directory').classList.contains('hidden')) loadStaffDirectory();
         };
 
-        // --- EMPLOYEE LISTENERS (Moved to init func) ---
         function setupEmployeeListeners() {
              const reqQ = query(collection(db, "requests"), where("userId", "==", currentUser.uid));
              onSnapshot(reqQ, (snapshot) => {
@@ -945,33 +933,84 @@
         }
         
         window.toggleReachable = async () => { await updateDoc(doc(db, "users", currentUser.uid), { isReachable: document.getElementById('reachable-toggle').checked }); };
-        window.changeMetric = (dir) => { metricMode += dir; if(metricMode < 0) metricMode = 2; if(metricMode > 2) metricMode = 0; document.getElementById('metric-label').innerText = metricLabels[metricMode]; calculateMetrics(); };
         
-        // --- LIVE METRICS CALCULATION ---
-        async function calculateMetrics() {
-            const q = query(collection(db, "shifts"), where("userId", "==", currentUser.uid), where("endTime", "!=", null));
-            const snaps = await getDocs(q);
-            let totalMs = 0; 
-            
-            const now = new Date(); 
-            const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay())); startOfWeek.setHours(0,0,0,0);
-            const today = new Date(); today.setHours(0,0,0,0);
+        // --- EMPLOYEE METRICS (LIVE UPDATING) ---
+        window.changeMetric = (dir) => { 
+            metricMode += dir; 
+            if(metricMode < 0) metricMode = 2; 
+            if(metricMode > 2) metricMode = 0; 
+            document.getElementById('metric-label').innerText = metricLabels[metricMode]; 
+            recalcEmployeeMetrics();
+        };
 
-            snaps.forEach(doc => {
-                const d = doc.data(); 
-                const s = d.startTime.toDate(); 
-                const e = d.endTime.toDate(); 
-                const dur = e - s;
-                
-                if (metricMode === 2) totalMs += dur; 
-                else if (metricMode === 1) { if(s >= startOfWeek) totalMs += dur; } 
-                else { if(s >= today) totalMs += dur; }
+        function initEmployeeMetrics() {
+            // Real-time listener for ALL shifts
+            const q = query(collection(db, "shifts"), where("userId", "==", currentUser.uid));
+            onSnapshot(q, (snaps) => {
+                employeeShiftsSnapshot = [];
+                snaps.forEach(doc => employeeShiftsSnapshot.push(doc.data()));
+                recalcEmployeeMetrics();
+            });
+        }
+
+        function recalcEmployeeMetrics() {
+            let totalMs = 0;
+            const now = new Date(); 
+            const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+            const weekStart = new Date(new Date().setDate(new Date().getDate() - new Date().getDay())); weekStart.setHours(0,0,0,0);
+
+            employeeShiftsSnapshot.forEach(d => {
+                const s = d.startTime ? d.startTime.toDate() : null;
+                const e = d.endTime ? d.endTime.toDate() : null;
+                if(!s) return;
+
+                // Check date filter
+                let include = false;
+                if (metricMode === 2) include = true; // All Time
+                else if (metricMode === 1) { if(s >= weekStart) include = true; } // This Week
+                else { if(s >= todayStart) include = true; } // Today
+
+                if(include) {
+                    if (e) {
+                        totalMs += (e - s);
+                    } else {
+                        // This is the active shift. We add the static part here.
+                        // The setInterval will add the ticking part dynamically.
+                        totalMs += (now - s);
+                    }
+                }
             });
             
-            baseMetricTotalMs = totalMs; // Store base historical hours
+            // Note: Unlike the employer view which is static, the employee view ticks.
+            // We store the "base" (completed + current progress so far) in the global variable
+            // But to avoid double counting in the UI loop, we actually just set it here.
+            // The StartClockUI loop handles the *active* session display.
             
-            // Initial render without active session
-            document.getElementById('metric-val').innerText = (totalMs / 36e5).toFixed(1);
+            // To make it simple: baseMetricTotalMs will store TOTAL COMPLETED time.
+            // The active shift is added purely in the UI loop if active.
+            
+            // Let's refactor specifically for the ticking UI:
+            let completedTotalMs = 0;
+            employeeShiftsSnapshot.forEach(d => {
+                const s = d.startTime ? d.startTime.toDate() : null;
+                const e = d.endTime ? d.endTime.toDate() : null;
+                if(!s) return;
+
+                let include = false;
+                if (metricMode === 2) include = true; 
+                else if (metricMode === 1) { if(s >= weekStart) include = true; }
+                else { if(s >= todayStart) include = true; }
+
+                if(include && e) {
+                    completedTotalMs += (e - s);
+                }
+            });
+            baseMetricTotalMs = completedTotalMs;
+            
+            // If not clocked in, update UI immediately. If clocked in, the loop will update it in <1s.
+            if(!activeShiftId) {
+                document.getElementById('metric-val').innerText = (baseMetricTotalMs / 36e5).toFixed(1);
+            }
         }
 
         // --- SHARED MODALS ---
@@ -1162,7 +1201,7 @@
             alert("Progress Saved!");
         };
 
-        // --- NEW EMPLOYEE STATS VIEW LOGIC (REAL-TIME FIX) ---
+        // --- NEW EMPLOYEE STATS VIEW LOGIC (PERSISTENT & REAL-TIME) ---
         async function loadEmployeeStatsSelector() {
             const select = document.getElementById('stats-emp-select');
             
@@ -1183,20 +1222,21 @@
                     }
                 }
             }
-
+            
             // Restore last selected
             const last = localStorage.getItem('lastAnalyticsEmp');
-            if(last && select.querySelector(`option[value="${last}"]`)) {
-                select.value = last;
-                loadStatsForEmp(last);
+            if(last) {
+                // Wait for UI to update in case of race condition, or set value if present
+                if(select.querySelector(`option[value="${last}"]`)) {
+                    select.value = last;
+                    loadStatsForEmp(last);
+                }
             }
         }
 
         window.loadStatsForEmp = (uid) => {
-            // Save state
             if(uid) localStorage.setItem('lastAnalyticsEmp', uid);
 
-            // Unsubscribe previous listeners if any
             if(statsUnsubShifts) statsUnsubShifts();
             if(statsUnsubProjs) statsUnsubProjs();
 
@@ -1206,29 +1246,25 @@
             }
             document.getElementById('stats-display').classList.remove('hidden');
             
-            // Set Loading State
             document.getElementById('stat-total-hours').innerText = "-";
             document.getElementById('stat-total-shifts').innerText = "-";
             document.getElementById('stat-completed-projs').innerText = "-";
 
-            // 1. Shifts Listener (Query ALL shifts for user, filter in JS to avoid Index issues)
+            // 1. Shifts Listener (Includes active shifts for total hours)
             const qShifts = query(collection(db, "shifts"), where("userId", "==", uid));
-            
             statsUnsubShifts = onSnapshot(qShifts, (shiftSnaps) => {
                 let ms = 0;
                 let count = 0;
                 
                 shiftSnaps.forEach(doc => {
                     const d = doc.data();
-                    count++; // Count every shift entry (active or closed)
-                    
-                    // Only add time if the shift is finished
-                    if(d.startTime) {
+                    count++; 
+                    if (d.startTime) {
                         const start = d.startTime.toDate();
                         if (d.endTime) {
                             ms += (d.endTime.toDate() - start);
                         } else {
-                            // Active shift! Add elapsed time so far.
+                            // Add active shift duration to total
                             ms += (new Date() - start);
                         }
                     }
@@ -1239,17 +1275,13 @@
             });
 
             // 2. Projects Listener
-            // Query all projects created by me (the manager) to ensure permission, then filter in memory
             const qProjs = query(collection(db, "projects"), where("createdBy", "==", currentUser.uid));
-            
             statsUnsubProjs = onSnapshot(qProjs, (projSnaps) => {
                 let completedCount = 0;
                 projSnaps.forEach(doc => {
                     const p = doc.data();
                     const assignedList = p.assignedTo || [];
                     const prog = parseInt(p.progress || 0);
-                    
-                    // Check if selected employee is assigned AND progress is 100
                     if (assignedList.includes(uid) && prog === 100) {
                         completedCount++;
                     }
